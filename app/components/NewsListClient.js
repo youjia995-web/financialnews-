@@ -47,6 +47,11 @@ export default function NewsListClient({ initialItems }) {
     }
   }
 
+  const handleManualDateChange = (setter) => (e) => {
+    setter(e.target.value)
+    setDateRangeType('custom')
+  }
+
   const toggleSelect = (id) => {
     const next = new Set(selectedIds)
     if (next.has(id)) next.delete(id)
@@ -134,34 +139,30 @@ export default function NewsListClient({ initialItems }) {
           </select>
         </div>
 
-        {dateRangeType === 'custom' && (
-          <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ color: '#94a3b8', fontSize: 14 }}>开始:</span>
-              <input 
-                type="date" 
-                value={startDate} 
-                onChange={e => setStartDate(e.target.value)}
-                style={{ 
-                  background: '#0f172a', border: '1px solid #334155', color: '#e2e8f0', 
-                  padding: '6px 10px', borderRadius: 6 
-                }}
-              />
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ color: '#94a3b8', fontSize: 14 }}>结束:</span>
-              <input 
-                type="date" 
-                value={endDate} 
-                onChange={e => setEndDate(e.target.value)}
-                style={{ 
-                  background: '#0f172a', border: '1px solid #334155', color: '#e2e8f0', 
-                  padding: '6px 10px', borderRadius: 6 
-                }}
-              />
-            </div>
-          </>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ color: '#94a3b8', fontSize: 14 }}>开始:</span>
+          <input 
+            type="date" 
+            value={startDate} 
+            onChange={handleManualDateChange(setStartDate)}
+            style={{ 
+              background: '#0f172a', border: '1px solid #334155', color: '#e2e8f0', 
+              padding: '6px 10px', borderRadius: 6 
+            }}
+          />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ color: '#94a3b8', fontSize: 14 }}>结束:</span>
+          <input 
+            type="date" 
+            value={endDate} 
+            onChange={handleManualDateChange(setEndDate)}
+            style={{ 
+              background: '#0f172a', border: '1px solid #334155', color: '#e2e8f0', 
+              padding: '6px 10px', borderRadius: 6 
+            }}
+          />
+        </div>
 
         <div style={{ display: 'flex', gap: 10, marginLeft: 'auto' }}>
           <button 
