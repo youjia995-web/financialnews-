@@ -5,6 +5,7 @@ module.exports = {
       script: 'npm',
       args: 'start',
       env: {
+        PORT: '6081',
         HOSTNAME: '0.0.0.0'
       }
     },
