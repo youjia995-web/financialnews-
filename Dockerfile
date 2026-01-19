@@ -19,8 +19,8 @@ COPY . .
 # 构建 Next.js 应用
 RUN npm run build
 
-# 暴露端口 (Next.js 默认是 3000，但 package.json 里配置了 6081)
-EXPOSE 6081
+# 暴露端口 (Zeabur 会自动处理，这里声明仅供参考)
+EXPOSE 3000
 
 # 使用 PM2 启动 ecosystem.config.js 中定义的所有应用
 CMD ["pm2-runtime", "start", "ecosystem.config.js"]
