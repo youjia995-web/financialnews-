@@ -6,12 +6,44 @@ export default function NewsListClient({ initialItems }) {
   const [items, setItems] = useState(initialItems)
   const [selectedIds, setSelectedIds] = useState(new Set())
   const [generating, setGenerating] = useState(false)
+  
+  // 筛选状态
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
+  const [loading, setLoading] = useState(false)
 
   const toggleSelect = (id) => {
     const next = new Set(selectedIds)
     if (next.has(id)) next.delete(id)
     else next.add(id)
     setSelectedIds(next)
+  }
+
+  const handleSearch = async () => {
+    setLoading(true)
+    try {
+      const params = new URLSearchParams()
+      if (startDate) params.append('start', new Date(startDate).getTime())
+      if (endDate) params.append('end', new Date(endDate).getTime() + 86399999) // 包含当天结束
+      
+      const res = await fetch(`/api/news?${params.toString()}`)
+      if (res.ok) {
+        const json = await res.json()
+        setItems(json.items)
+      }
+    } catch (e) {
+      console.error('Search failed:', e)
+      alert('查询失败')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleExport = () => {
+    const params = new URLSearchParams()
+    if (startDate) params.append('start', new Date(startDate).getTime())
+    if (endDate) params.append('end', new Date(endDate).getTime() + 86399999)
+    window.location.href = `/api/export?${params.toString()}`
   }
 
   const handleGenerate = async () => {
@@ -43,6 +75,58 @@ export default function NewsListClient({ initialItems }) {
 
   return (
     <>
+      {/* 筛选工具栏 */}
+      <div style={{ 
+        background: '#1e293b', padding: '12px 16px', borderRadius: 8, marginBottom: 16,
+        display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ color: '#94a3b8', fontSize: 14 }}>开始日期:</span>
+          <input 
+            type="date" 
+            value={startDate} 
+            onChange={e => setStartDate(e.target.value)}
+            style={{ 
+              background: '#0f172a', border: '1px solid #334155', color: '#e2e8f0', 
+              padding: '6px 10px', borderRadius: 6 
+            }}
+          />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ color: '#94a3b8', fontSize: 14 }}>结束日期:</span>
+          <input 
+            type="date" 
+            value={endDate} 
+            onChange={e => setEndDate(e.target.value)}
+            style={{ 
+              background: '#0f172a', border: '1px solid #334155', color: '#e2e8f0', 
+              padding: '6px 10px', borderRadius: 6 
+            }}
+          />
+        </div>
+        <div style={{ display: 'flex', gap: 10, marginLeft: 'auto' }}>
+          <button 
+            onClick={handleSearch}
+            disabled={loading}
+            style={{ 
+              background: '#3b82f6', color: 'white', border: 'none', padding: '6px 16px', 
+              borderRadius: 6, cursor: loading ? 'wait' : 'pointer' 
+            }}
+          >
+            {loading ? '查询中...' : '查询'}
+          </button>
+          <button 
+            onClick={handleExport}
+            style={{ 
+              background: '#10b981', color: 'white', border: 'none', padding: '6px 16px', 
+              borderRadius: 6, cursor: 'pointer' 
+            }}
+          >
+            导出 Excel
+          </button>
+        </div>
+      </div>
+
       {/* 悬浮操作栏 */}
       {selectedIds.size > 0 && (
         <div style={{
