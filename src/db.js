@@ -2,7 +2,8 @@ const path = require('path')
 const fs = require('fs')
 const Loki = require('lokijs')
 
-const dbFile = path.join(process.cwd(), 'data.loki')
+// 优先使用环境变量指定的路径（适配 Zeabur 挂载卷），否则回退到当前目录
+const dbFile = process.env.LOKI_FILE_PATH || path.join(process.cwd(), 'data.loki')
 const db = new Loki(dbFile, {
   autoload: true,
   autoloadCallback: init,
