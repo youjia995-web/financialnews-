@@ -1,0 +1,20 @@
+{
+  "name": "finance-news-aggregator",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 6081",
+    "build": "next build",
+    "start": "next start -p 6081",
+    "fetcher": "node scripts/fetcher.js",
+    "notes": "node scripts/run-notes.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "lokijs": "^1.5.12",
+    "next": "^14.2.14",
+    "node-cron": "^3.0.3",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  }
+}
