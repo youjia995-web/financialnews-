@@ -1,5 +1,4 @@
-const db = require('../db')
-const { getNewsCol } = require('../../lib/db-wrapper')
+const prisma = require('../../lib/prisma')
 const { derive } = require('../sentiment')
 
 async function fetchList() {
@@ -54,24 +53,31 @@ async function fetchList() {
 }
 
 async function saveItems(items) {
-  const col = await getNewsCol()
+  let count = 0
   for (const it of items) {
-    // 简单的去重逻辑，如果已存在则跳过 (loki unique index 会报错)
-    const exists = col.by('id', it.id)
-    if (!exists) {
-      const senti = derive(it)
-      const doc = {
-        ...it,
-        ai_note: '',
-        sentiment_score: senti.score,
-        created_at: Date.now()
-      }
-      try {
-        col.insert(doc)
-      } catch {}
+    const senti = derive(it)
+    const doc = {
+      id: it.id,
+      source: it.source,
+      title: it.title,
+      brief: it.brief,
+      content: it.content,
+      url: it.url,
+      published_at: BigInt(it.published_at),
+      ai_note: '',
+      sentiment_score: senti.score,
+      created_at: BigInt(Date.now())
     }
+    try {
+      await prisma.news.upsert({
+        where: { id: it.id },
+        update: {},
+        create: doc
+      })
+      count++
+    } catch {}
   }
-  await col.save()
+  return count
 }
 
 async function runOnce() {

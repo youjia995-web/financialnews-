@@ -1,29 +1,38 @@
-const { getNewsCol } = require('../../lib/db-wrapper')
+const prisma = require('../../lib/prisma')
 const { generateNote } = require('./deepseek')
 
 async function run(limit = 5) {
-  const col = await getNewsCol()
-  const items = col.find({ ai_note: '' }).slice(0, limit)
+  const items = await prisma.news.findMany({
+    where: {
+      OR: [
+        { ai_note: null },
+        { ai_note: '' }
+      ]
+    },
+    take: limit
+  })
+
   let ok = 0
   for (const it of items) {
     try {
       const note = await generateNote(it)
       if (note) {
-        it.ai_note = note
-        col.update(it)
+        await prisma.news.update({
+          where: { id: it.id },
+          data: { ai_note: note }
+        })
         ok++
       }
     } catch {}
   }
-  await col.save()
   return ok
 }
 
 async function runBatch(ids) {
-  const col = await getNewsCol()
-  // 查找指定 ID 且尚未生成评注的新闻，或者已生成但需重新生成的（如果需要）
-  // 这里逻辑是：只要 ID 匹配就生成，覆盖旧的
-  const items = col.find({ id: { $in: ids } })
+  const items = await prisma.news.findMany({
+    where: { id: { in: ids } }
+  })
+  
   const updatedItems = []
 
   // 并发执行，每批最多 5 个，防止请求积压但提高速度
@@ -37,9 +46,11 @@ async function runBatch(ids) {
           new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000))
         ])
         if (note) {
-          it.ai_note = note
-          col.update(it)
-          updatedItems.push(it)
+          await prisma.news.update({
+            where: { id: it.id },
+            data: { ai_note: note }
+          })
+          updatedItems.push({ ...it, ai_note: note })
         }
       } catch (e) {
         console.error(`Failed to note ${it.id}:`, e.message)
@@ -47,9 +58,6 @@ async function runBatch(ids) {
     }))
   }
   
-  if (updatedItems.length > 0) {
-    await col.save()
-  }
   return updatedItems
 }
 

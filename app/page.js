@@ -1,6 +1,6 @@
 import AutoRefresh from './components/AutoRefresh'
 import NewsListClient from './components/NewsListClient'
-import { getNewsCol } from '../lib/db-wrapper'
+import prisma from '../lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,8 +33,10 @@ export default async function HomePage() {
 
 async function fetchNews() {
   try {
-    const col = await getNewsCol()
-    const rows = col.chain().simplesort('published_at', true).limit(50).data()
+    const rows = await prisma.news.findMany({
+      orderBy: { published_at: 'desc' },
+      take: 50
+    })
     return rows.map(r => ({
       id: r.id,
       source: r.source,
@@ -42,7 +44,7 @@ async function fetchNews() {
       brief: r.brief,
       content: r.content,
       url: r.url,
-      published_at: r.published_at,
+      published_at: Number(r.published_at),
       ai_note: r.ai_note,
       sentiment: { score: r.sentiment_score }
     }))
