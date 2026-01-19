@@ -26,24 +26,24 @@ export default function NewsListClient({ initialItems }) {
       setStartDate('')
       setEndDate('')
     } else if (type === 'today') {
-      setStartDate(todayStr)
-      setEndDate(todayStr)
+      setStartDate(`${todayStr}T00:00`)
+      setEndDate(`${todayStr}T23:59`)
     } else if (type === 'yesterday') {
       const y = new Date(now)
       y.setDate(y.getDate() - 1)
       const yStr = y.toISOString().split('T')[0]
-      setStartDate(yStr)
-      setEndDate(yStr)
+      setStartDate(`${yStr}T00:00`)
+      setEndDate(`${yStr}T23:59`)
     } else if (type === 'last7') {
       const d = new Date(now)
       d.setDate(d.getDate() - 6)
-      setStartDate(d.toISOString().split('T')[0])
-      setEndDate(todayStr)
+      setStartDate(`${d.toISOString().split('T')[0]}T00:00`)
+      setEndDate(`${todayStr}T23:59`)
     } else if (type === 'last30') {
       const d = new Date(now)
       d.setDate(d.getDate() - 29)
-      setStartDate(d.toISOString().split('T')[0])
-      setEndDate(todayStr)
+      setStartDate(`${d.toISOString().split('T')[0]}T00:00`)
+      setEndDate(`${todayStr}T23:59`)
     }
   }
 
@@ -64,7 +64,7 @@ export default function NewsListClient({ initialItems }) {
     try {
       const params = new URLSearchParams()
       if (startDate) params.append('start', new Date(startDate).getTime())
-      if (endDate) params.append('end', new Date(endDate).getTime() + 86399999) // 包含当天结束
+      if (endDate) params.append('end', new Date(endDate).getTime()) // datetime-local 精确到分，直接使用时间戳即可，无需+86400000
       
       const res = await fetch(`/api/news?${params.toString()}`)
       if (res.ok) {
@@ -82,7 +82,7 @@ export default function NewsListClient({ initialItems }) {
   const handleExport = () => {
     const params = new URLSearchParams()
     if (startDate) params.append('start', new Date(startDate).getTime())
-    if (endDate) params.append('end', new Date(endDate).getTime() + 86399999)
+    if (endDate) params.append('end', new Date(endDate).getTime())
     window.location.href = `/api/export?${params.toString()}`
   }
 
@@ -142,7 +142,7 @@ export default function NewsListClient({ initialItems }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ color: '#94a3b8', fontSize: 14 }}>开始:</span>
           <input 
-            type="date" 
+            type="datetime-local" 
             value={startDate} 
             onChange={handleManualDateChange(setStartDate)}
             style={{ 
@@ -154,7 +154,7 @@ export default function NewsListClient({ initialItems }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ color: '#94a3b8', fontSize: 14 }}>结束:</span>
           <input 
-            type="date" 
+            type="datetime-local" 
             value={endDate} 
             onChange={handleManualDateChange(setEndDate)}
             style={{ 

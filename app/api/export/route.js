@@ -23,8 +23,8 @@ export async function GET(request) {
     chain = chain.find(query)
   }
 
-  // 导出不限制数量，或者限制大一点，比如 5000
-  const rows = chain.simplesort('published_at', true).limit(5000).data()
+  // 导出限制放宽到 10000 条，确保全天数据（通常几百条）能全部导出
+  const rows = chain.simplesort('published_at', true).limit(10000).data()
 
   // 转换数据格式
   const data = rows.map(r => ({
