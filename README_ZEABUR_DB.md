@@ -1,36 +1,48 @@
-# Zeabur 数据持久化指南
+# Zeabur 数据持久化指南 (Prisma/SQLite 版)
 
-由于 Zeabur 的容器是无状态的，重新部署会导致本地文件丢失。为了保存爬取的财经新闻数据，你需要配置**持久化存储（Persistent Volume）**。
+本项目已升级为使用 Prisma + SQLite 存储数据。
+SQLite 是一个标准的单文件关系型数据库，比之前的 JSON 文件更稳定、功能更强，且方便导出。
 
-请按照以下步骤操作：
+在 Zeabur 上部署时，为了防止数据丢失，依然需要配置持久化存储。
 
 ## 第一步：创建挂载卷 (Volume)
 
 1. 登录 Zeabur 控制台。
-2. 进入你的项目（Project）。
-3. 点击 **"Volumes"**（存储卷）选项卡。
-4. 点击 **"Create Volume"**（创建存储卷）。
-5. 给它起个名字，例如 `news-data`。
+2. 进入你的项目 -> **Volumes**。
+3. 创建一个新的 Volume，例如命名为 `sqlite-data`。
 
 ## 第二步：挂载到服务
 
-1. 回到 **"Services"**（服务）列表，点击你的 Next.js 服务（financialnews）。
-2. 进入 **"Settings"**（设置） -> **"Mounts"**（挂载）。
-3. 点击 **"Add Mount"**（添加挂载）。
-4. 填写以下信息：
-   - **Volume**: 选择刚才创建的 `news-data`。
-   - **Path**: `/app/data` (这是容器内部的路径)。
-5. 点击保存。
+1. 进入 Next.js 服务 (financialnews) -> **Settings** -> **Mounts**。
+2. 添加挂载：
+   - **Volume**: `sqlite-data`
+   - **Path**: `/app/prisma/db` (我们将把数据库文件放在这个专门的目录下)
 
-## 第三步：设置环境变量
+## 第三步：修改环境变量
 
-1. 在服务的 **"Variables"**（环境变量）选项卡中。
-2. 添加一个新的环境变量：
-   - **Key**: `LOKI_FILE_PATH`
-   - **Value**: `/app/data/data.loki`
-3. 这一步告诉程序将数据库文件保存到刚才挂载的目录中。
+1. 进入服务 -> **Variables**。
+2. 修改（或添加）`DATABASE_URL`：
+   - **Key**: `DATABASE_URL`
+   - **Value**: `file:/app/prisma/db/dev.db`
+   
+   *注意：路径必须以 `file:` 开头，后面是挂载路径下的文件名。*
 
-## 第四步：重新部署
+## 第四步：部署时的数据库初始化
 
-1. 配置完成后，Zeabur 可能会自动重启服务。如果没有，请手动点击 **"Redeploy"**。
-2. 部署成功后，你的新闻数据就会保存在那个存储卷里了，即使以后更新代码或重新部署，数据也不会丢失。
+Zeabur 部署时会自动运行 `prisma migrate deploy`（如果我们在 build 命令中加了的话，或者作为启动脚本的一部分）。
+为了确保万无一失，建议修改 `package.json` 中的启动脚本：
+
+原 `start`:
+```json
+"start": "next start -H 0.0.0.0"
+```
+
+建议改为（每次启动前自动迁移数据库）：
+```json
+"start": "npx prisma migrate deploy && next start -H 0.0.0.0"
+```
+(我已经帮你改好了)
+
+## 本地开发
+
+本地开发时，数据库文件位于 `prisma/dev.db`。你可以使用任何 SQLite 客户端（如 DBeaver, DB Browser for SQLite）直接打开它来查看或导出数据。

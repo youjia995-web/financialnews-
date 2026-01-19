@@ -1,5 +1,4 @@
-const db = require('../db')
-const { getNewsCol } = require('../../lib/db-wrapper')
+const prisma = require('../../lib/prisma')
 const { derive } = require('../sentiment')
 
 async function fetchList() {
@@ -26,22 +25,33 @@ async function fetchList() {
 }
 
 async function saveItems(items) {
-  const col = await getNewsCol()
+  let count = 0
   for (const it of items) {
     const senti = derive(it)
     const doc = {
-      ...it,
+      id: it.id,
+      source: it.source,
+      title: it.title,
+      brief: it.brief,
+      content: it.content,
+      url: it.url,
+      published_at: BigInt(it.published_at),
       ai_note: '',
       sentiment_score: senti.score,
-      created_at: Date.now()
+      created_at: BigInt(Date.now())
     }
     try {
-      col.insert(doc)
-    } catch {
-      // duplicate id, skip
+      await prisma.news.upsert({
+        where: { id: it.id },
+        update: {},
+        create: doc
+      })
+      count++
+    } catch (e) {
+      console.error(`[cls] save error for ${it.id}:`, e)
     }
   }
-  await col.save()
+  return count
 }
 
 async function runOnce() {

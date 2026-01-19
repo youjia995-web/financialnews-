@@ -1,0 +1,26 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model News {
+  id              String   @id
+  source          String
+  title           String
+  brief           String?
+  content         String?
+  url             String?
+  published_at    BigInt
+  ai_note         String?
+  sentiment_score Float?
+  created_at      BigInt
+  
+  @@index([source, published_at])
+}
