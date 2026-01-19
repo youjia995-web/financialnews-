@@ -8,9 +8,44 @@ export default function NewsListClient({ initialItems }) {
   const [generating, setGenerating] = useState(false)
   
   // 筛选状态
+  const [dateRangeType, setDateRangeType] = useState('all') // all, today, yesterday, last7, last30, custom
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [loading, setLoading] = useState(false)
+
+  const handleRangeChange = (e) => {
+    const type = e.target.value
+    setDateRangeType(type)
+    
+    if (type === 'custom') return
+
+    const now = new Date()
+    const todayStr = now.toISOString().split('T')[0]
+    
+    if (type === 'all') {
+      setStartDate('')
+      setEndDate('')
+    } else if (type === 'today') {
+      setStartDate(todayStr)
+      setEndDate(todayStr)
+    } else if (type === 'yesterday') {
+      const y = new Date(now)
+      y.setDate(y.getDate() - 1)
+      const yStr = y.toISOString().split('T')[0]
+      setStartDate(yStr)
+      setEndDate(yStr)
+    } else if (type === 'last7') {
+      const d = new Date(now)
+      d.setDate(d.getDate() - 6)
+      setStartDate(d.toISOString().split('T')[0])
+      setEndDate(todayStr)
+    } else if (type === 'last30') {
+      const d = new Date(now)
+      d.setDate(d.getDate() - 29)
+      setStartDate(d.toISOString().split('T')[0])
+      setEndDate(todayStr)
+    }
+  }
 
   const toggleSelect = (id) => {
     const next = new Set(selectedIds)
@@ -81,29 +116,53 @@ export default function NewsListClient({ initialItems }) {
         display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ color: '#94a3b8', fontSize: 14 }}>开始日期:</span>
-          <input 
-            type="date" 
-            value={startDate} 
-            onChange={e => setStartDate(e.target.value)}
+          <span style={{ color: '#94a3b8', fontSize: 14 }}>时间范围:</span>
+          <select 
+            value={dateRangeType} 
+            onChange={handleRangeChange}
             style={{ 
               background: '#0f172a', border: '1px solid #334155', color: '#e2e8f0', 
-              padding: '6px 10px', borderRadius: 6 
+              padding: '6px 10px', borderRadius: 6, outline: 'none'
             }}
-          />
+          >
+            <option value="all">全部</option>
+            <option value="today">今天</option>
+            <option value="yesterday">昨天</option>
+            <option value="last7">最近7天</option>
+            <option value="last30">最近30天</option>
+            <option value="custom">自定义</option>
+          </select>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ color: '#94a3b8', fontSize: 14 }}>结束日期:</span>
-          <input 
-            type="date" 
-            value={endDate} 
-            onChange={e => setEndDate(e.target.value)}
-            style={{ 
-              background: '#0f172a', border: '1px solid #334155', color: '#e2e8f0', 
-              padding: '6px 10px', borderRadius: 6 
-            }}
-          />
-        </div>
+
+        {dateRangeType === 'custom' && (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ color: '#94a3b8', fontSize: 14 }}>开始:</span>
+              <input 
+                type="date" 
+                value={startDate} 
+                onChange={e => setStartDate(e.target.value)}
+                style={{ 
+                  background: '#0f172a', border: '1px solid #334155', color: '#e2e8f0', 
+                  padding: '6px 10px', borderRadius: 6 
+                }}
+              />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ color: '#94a3b8', fontSize: 14 }}>结束:</span>
+              <input 
+                type="date" 
+                value={endDate} 
+                onChange={e => setEndDate(e.target.value)}
+                style={{ 
+                  background: '#0f172a', border: '1px solid #334155', color: '#e2e8f0', 
+                  padding: '6px 10px', borderRadius: 6 
+                }}
+              />
+            </div>
+          </>
+        )}
+
         <div style={{ display: 'flex', gap: 10, marginLeft: 'auto' }}>
           <button 
             onClick={handleSearch}
