@@ -26,16 +26,24 @@ export async function GET(request) {
     })
 
     // 转换数据格式
-    const data = rows.map(r => ({
-      '发布时间': new Date(Number(r.published_at)).toLocaleString(),
-      '来源': r.source === 'eastmoney' ? '东财' : (r.source === 'futu' ? '富途' : '财联社'),
-      '标题': r.title,
-      '摘要': r.brief,
-      '内容': r.content,
-      '原文链接': r.url,
-      '情感得分': r.sentiment_score || 0,
-      'AI评注': r.ai_note || ''
-    }))
+    const data = rows.map(r => {
+      let sourceName = '其他'
+      if (r.source === 'eastmoney') sourceName = '东财'
+      else if (r.source === 'futu') sourceName = '富途'
+      else if (r.source === 'cls') sourceName = '财联社'
+      else if (r.source === 'wallstreetcn') sourceName = '华尔街见闻'
+
+      return {
+        '发布时间': new Date(Number(r.published_at)).toLocaleString(),
+        '来源': sourceName,
+        '标题': r.title,
+        '摘要': r.brief,
+        '内容': r.content,
+        '原文链接': r.url,
+        '情感得分': r.sentiment_score || 0,
+        'AI评注': r.ai_note || ''
+      }
+    })
 
     // 创建 Workbook
     const workbook = XLSX.utils.book_new()

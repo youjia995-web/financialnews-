@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import cls from '../../../src/fetchers/cls'
 // import futu from '../../../src/fetchers/futu'
 import eastmoney from '../../../src/fetchers/eastmoney'
+import wallstreetcn from '../../../src/fetchers/wallstreetcn'
 import { run as runNotes } from '../../../src/ai/generator'
 
 export async function POST() {
@@ -10,11 +11,12 @@ export async function POST() {
   
   try {
     // 1. 并行抓取新闻
-    const [c1, c2] = await Promise.all([
+    const [c1, c2, c3] = await Promise.all([
       cls.runOnce(),
-      eastmoney.runOnce()
+      eastmoney.runOnce(),
+      wallstreetcn.runOnce()
     ])
-    count = c1 + c2
+    count = c1 + c2 + c3
   } catch (e) {
     console.error('Fetch news failed:', e)
     return NextResponse.json({ ok: false, error: e.message }, { status: 500 })
