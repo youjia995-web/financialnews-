@@ -1,4 +1,4 @@
-import Provider from './components/SessionProvider'
+import Providers from './components/Providers'
 
 export const metadata = {
   title: '财经新闻汇总',
@@ -9,9 +9,9 @@ export default function RootLayout({ children }) {
   return (
     <html lang="zh-CN">
       <body style={{ margin: 0, fontFamily: 'system-ui, -apple-system, Segoe UI, Roboto' }}>
-        <Provider>
+        <Providers>
           {children}
-        </Provider>
+        </Providers>
       </body>
     </html>
   )

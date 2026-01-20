@@ -1,7 +1,7 @@
 import AutoRefresh from './components/AutoRefresh'
-import UserNav from './components/UserNav'
 import NewsListClient from './components/NewsListClient'
 import IntelligencePanel from './components/IntelligencePanel'
+import UserMenu from './components/UserMenu'
 import prisma from '../lib/prisma'
 
 export const dynamic = 'force-dynamic'
@@ -23,7 +23,7 @@ export default async function HomePage() {
         </nav>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 12, alignItems: 'center' }}>
           <AutoRefresh />
-          <UserNav />
+          <UserMenu />
         </div>
       </header>
       <section style={{ maxWidth: 980, margin: '24px auto', padding: '0 16px' }}>

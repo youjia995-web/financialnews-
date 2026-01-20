@@ -3,7 +3,7 @@ import CredentialsProvider from "next-auth/providers/credentials"
 import prisma from "../../../../lib/prisma"
 import bcrypt from "bcryptjs"
 
-export const authOptions = {
+const handler = NextAuth({
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -12,21 +12,39 @@ export const authOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        if (!credentials?.username || !credentials?.password) return null
+        if (!credentials?.username || !credentials?.password) {
+          return null
+        }
         
         const user = await prisma.user.findUnique({
           where: { username: credentials.username }
         })
 
-        if (!user) return null
+        if (!user) {
+          return null
+        }
 
-        const isValid = await bcrypt.compare(credentials.password, user.password)
-        if (!isValid) return null
+        const isPasswordValid = await bcrypt.compare(credentials.password, user.password)
 
-        return { id: user.id, name: user.username, role: user.role }
+        if (!isPasswordValid) {
+          return null
+        }
+
+        return {
+          id: user.id,
+          name: user.username, // 将 username 映射为 name
+          email: user.email,
+          role: user.role
+        }
       }
     })
   ],
+  session: {
+    strategy: "jwt"
+  },
+  pages: {
+    signIn: "/login",
+  },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
@@ -35,18 +53,13 @@ export const authOptions = {
       return token
     },
     async session({ session, token }) {
-      if (session.user) {
+      if (token) {
+        session.user.id = token.sub
         session.user.role = token.role
       }
       return session
     }
-  },
-  pages: {
-    signIn: '/login',
-  },
-  secret: process.env.NEXTAUTH_SECRET,
-}
-
-const handler = NextAuth(authOptions)
+  }
+})
 
 export { handler as GET, handler as POST }
