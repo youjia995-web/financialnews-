@@ -54,9 +54,14 @@ async function saveItems(items) {
 }
 
 async function runOnce() {
-  const items = await fetchList()
-  await saveItems(items)
-  return items.length
+  try {
+    const items = await fetchList()
+    await saveItems(items)
+    return items.length
+  } catch (e) {
+    console.error('[eastmoney] fetch failed:', e.message)
+    return 0
+  }
 }
 
 module.exports = { runOnce }
