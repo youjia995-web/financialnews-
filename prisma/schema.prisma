@@ -34,3 +34,11 @@ model Report {
   
   @@index([created_at])
 }
+
+model User {
+  id          String   @id @default(uuid())
+  username    String   @unique
+  password    String
+  role        String   @default("VISITOR") // ADMIN, VISITOR
+  created_at  BigInt
+}

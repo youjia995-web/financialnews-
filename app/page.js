@@ -1,4 +1,5 @@
 import AutoRefresh from './components/AutoRefresh'
+import UserNav from './components/UserNav'
 import NewsListClient from './components/NewsListClient'
 import IntelligencePanel from './components/IntelligencePanel'
 import prisma from '../lib/prisma'
@@ -22,6 +23,7 @@ export default async function HomePage() {
         </nav>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 12, alignItems: 'center' }}>
           <AutoRefresh />
+          <UserNav />
         </div>
       </header>
       <section style={{ maxWidth: 980, margin: '24px auto', padding: '0 16px' }}>
