@@ -60,7 +60,7 @@ function deduplicate(items) {
 /**
  * 分治分析策略
  */
-async function mapReduceAnalyze(items) {
+async function mapReduceAnalyze(items, dateStr) {
   // 1. Map 阶段：分块提取要点
   const CHUNK_SIZE = 20
   const chunks = []
@@ -103,7 +103,7 @@ ${validResults}
 
 请严格按照以下 Markdown 格式输出：
 
-# 📊 AI 财经全天情报 ([日期])
+# 📊 AI 财经全天情报 (${dateStr})
 
 ## 1. 宏观情绪温度计
 [用一句话概括全天市场情绪，例如：多空博弈激烈，避险情绪升温]
@@ -157,7 +157,10 @@ async function generateReport(startTime, endTime) {
   console.log(`[intelligence] Deduplicated: ${items.length} -> ${uniqueItems.length}`)
 
   // 3. 分析生成
-  const reportContent = await mapReduceAnalyze(uniqueItems)
+  // 格式化日期字符串，如 2023-10-25
+  const dateStr = new Date(startTime).toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-')
+  
+  const reportContent = await mapReduceAnalyze(uniqueItems, dateStr)
   if (!reportContent) {
     throw new Error('报告生成失败')
   }
