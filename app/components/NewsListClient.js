@@ -113,10 +113,19 @@ export default function NewsListClient({ initialItems }) {
       })
       if (res.ok) {
         const json = await res.json()
+        console.log('Batch notes response:', json) // Debug
+        
         // 更新本地状态显示新评注
         setItems(prev => prev.map(it => {
-          const update = json.items.find(u => u.id === it.id)
-          return update ? { ...it, ai_note: update.ai_note } : it
+          // 注意：API 返回的 id 可能是字符串，it.id 也可能是字符串，确保类型匹配
+          // BigInt 序列化问题：后端如果直接返回 BigInt 会有问题，但这里返回的是 id 和 ai_note 字段，应该没事
+          const update = json.items.find(u => String(u.id) === String(it.id))
+          
+          if (update && update.ai_note) {
+            console.log(`Updating note for ${it.id}:`, update.ai_note) // Debug
+            return { ...it, ai_note: update.ai_note }
+          }
+          return it
         }))
         
         // 如果是批量操作，清空选择
