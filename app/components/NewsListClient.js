@@ -243,10 +243,10 @@ export default function NewsListClient({ initialItems }) {
               <div style={{ color: '#475569' }}>
                 <span style={{ 
                   marginRight: 8, padding: '2px 6px', borderRadius: 4, fontSize: 12,
-                  background: it.source === 'eastmoney' ? '#ea580c' : (it.source === 'futu' ? '#f59e0b' : '#3b82f6'),
+                  background: it.source === 'eastmoney' ? '#ea580c' : (it.source === 'futu' ? '#f59e0b' : (it.source === 'wallstreetcn' ? '#8b5cf6' : '#3b82f6')),
                   color: 'white'
                 }}>
-                  {it.source === 'eastmoney' ? '东财' : (it.source === 'futu' ? '富途' : '财联社')}
+                  {it.source === 'eastmoney' ? '东财' : (it.source === 'futu' ? '富途' : (it.source === 'wallstreetcn' ? '华尔街见闻' : '财联社'))}
                 </span>
                 {new Date(it.published_at).toLocaleString()}
               </div>
