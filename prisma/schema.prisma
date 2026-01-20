@@ -24,3 +24,13 @@ model News {
   
   @@index([source, published_at])
 }
+
+model Report {
+  id          String   @id @default(uuid())
+  start_time  BigInt
+  end_time    BigInt
+  content     String
+  created_at  BigInt
+  
+  @@index([created_at])
+}

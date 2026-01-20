@@ -1,5 +1,6 @@
 import AutoRefresh from './components/AutoRefresh'
 import NewsListClient from './components/NewsListClient'
+import IntelligencePanel from './components/IntelligencePanel'
 import prisma from '../lib/prisma'
 
 export const dynamic = 'force-dynamic'
@@ -24,6 +25,7 @@ export default async function HomePage() {
         </div>
       </header>
       <section style={{ maxWidth: 980, margin: '24px auto', padding: '0 16px' }}>
+        <IntelligencePanel />
         <NewsListClient initialItems={items} />
       </section>
     </main>
