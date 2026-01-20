@@ -6,7 +6,6 @@ export default function NewsListClient({ initialItems }) {
   const [items, setItems] = useState(initialItems)
   const [selectedIds, setSelectedIds] = useState(new Set())
   const [generating, setGenerating] = useState(false)
-  const [generatingIds, setGeneratingIds] = useState(new Set()) // 追踪哪些 ID 正在生成中
   
   // 筛选状态
   const [dateRangeType, setDateRangeType] = useState('all') // all, today, yesterday, last7, last30, custom
@@ -87,25 +86,11 @@ export default function NewsListClient({ initialItems }) {
     window.location.href = `/api/export?${params.toString()}`
   }
 
-  const handleGenerate = async (idsToGenerate = null) => {
-    // 如果传入了 idsToGenerate (数组)，则只生成这些；否则生成选中的 selectedIds
-    const ids = Array.isArray(idsToGenerate) ? idsToGenerate : Array.from(selectedIds)
-    
-    if (ids.length === 0) return
-
-    // 标记正在生成的 ID
-    setGeneratingIds(prev => {
-      const next = new Set(prev)
-      ids.forEach(id => next.add(id))
-      return next
-    })
-    
-    // 如果是批量操作（即未传入具体 ID），也设置全局 generating 状态
-    if (!Array.isArray(idsToGenerate)) {
-      setGenerating(true)
-    }
-
+  const handleGenerate = async () => {
+    if (selectedIds.size === 0) return
+    setGenerating(true)
     try {
+      const ids = Array.from(selectedIds)
       const res = await fetch('/api/notes/batch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -113,40 +98,23 @@ export default function NewsListClient({ initialItems }) {
       })
       if (res.ok) {
         const json = await res.json()
-        console.log('Batch notes response:', json) // Debug
-        
+        console.log('Generated notes:', json)
         // 更新本地状态显示新评注
         setItems(prev => prev.map(it => {
-          // 注意：API 返回的 id 可能是字符串，it.id 也可能是字符串，确保类型匹配
-          // BigInt 序列化问题：后端如果直接返回 BigInt 会有问题，但这里返回的是 id 和 ai_note 字段，应该没事
-          const update = json.items.find(u => String(u.id) === String(it.id))
-          
-          if (update && update.ai_note) {
-            console.log(`Updating note for ${it.id}:`, update.ai_note) // Debug
-            return { ...it, ai_note: update.ai_note }
-          }
-          return it
+          const update = json.items.find(u => u.id === it.id)
+          return update ? { ...it, ai_note: update.ai_note } : it
         }))
-        
-        // 如果是批量操作，清空选择
-        if (!Array.isArray(idsToGenerate)) {
-          setSelectedIds(new Set()) 
-        }
+        setSelectedIds(new Set()) // 清空选择
+      } else {
+        const errText = await res.text()
+        console.error('Batch API error:', errText)
+        alert('生成失败: ' + res.status)
       }
     } catch (e) {
       console.error('Generate notes failed:', e)
       alert('生成失败，请重试')
     } finally {
-      // 移除正在生成的 ID 标记
-      setGeneratingIds(prev => {
-        const next = new Set(prev)
-        ids.forEach(id => next.delete(id))
-        return next
-      })
-      
-      if (!Array.isArray(idsToGenerate)) {
-        setGenerating(false)
-      }
+      setGenerating(false)
     }
   }
 
@@ -233,7 +201,7 @@ export default function NewsListClient({ initialItems }) {
         }}>
           <span style={{ color: '#e2e8f0' }}>已选 {selectedIds.size} 条</span>
           <button
-            onClick={() => handleGenerate()}
+            onClick={handleGenerate}
             disabled={generating}
             style={{
               background: generating ? '#94a3b8' : '#22c55e', color: '#0f172a',
@@ -292,20 +260,7 @@ export default function NewsListClient({ initialItems }) {
               <div style={{ color: '#64748b', marginBottom: 6 }}>AI 评注：{it.ai_note || '待生成'}</div>
               <div style={{ display: 'flex', gap: 10 }}>
                 <a href={it.url} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ background: '#0ea5e9', color: 'white', padding: '6px 10px', borderRadius: 6 }}>查看原文</a>
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleGenerate([it.id])
-                  }} 
-                  disabled={generatingIds.has(it.id)}
-                  style={{ 
-                    background: generatingIds.has(it.id) ? '#94a3b8' : '#8b5cf6', 
-                    color: 'white', border: 'none', padding: '6px 10px', borderRadius: 6, cursor: generatingIds.has(it.id) ? 'wait' : 'pointer'
-                  }}
-                >
-                  {generatingIds.has(it.id) ? '生成中...' : '生成 AI 评注'}
-                </button>
-                <button onClick={e => e.stopPropagation()} style={{ background: '#e2e8f0', color: '#0f172a', padding: '6px 10px', borderRadius: 6, border: 'none', cursor: 'pointer' }}>标记已读</button>
+                <button onClick={e => e.stopPropagation()} style={{ background: '#e2e8f0', color: '#0f172a', padding: '6px 10px', borderRadius: 6 }}>标记已读</button>
               </div>
             </div>
           </article>
