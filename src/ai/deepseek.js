@@ -1,9 +1,18 @@
 const endpoint = 'https://api.deepseek.com/v1/chat/completions'
 
-async function generateNote(item) {
+async function generateNote(input) {
   const key = process.env.DEEPSEEK_API_KEY
   if (!key) return null
-  const content = `标题：${item.title || ''}\n摘要：${item.brief || ''}\n内容：${item.content || ''}`
+  
+  let content = ''
+  if (typeof input === 'string') {
+    content = input
+  } else if (input && typeof input === 'object') {
+    content = `标题：${input.title || ''}\n摘要：${input.brief || ''}\n内容：${input.content || ''}`
+  } else {
+    return null
+  }
+
   const body = {
     model: 'deepseek-chat',
     messages: [
@@ -13,20 +22,27 @@ async function generateNote(item) {
     temperature: 0.2,
     max_tokens: 80
   }
-  const res = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${key}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(body)
-  })
-  if (!res.ok) {
+  
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${key}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    })
+    if (!res.ok) {
+      console.error('[deepseek] API error:', res.status, await res.text())
+      return null
+    }
+    const json = await res.json()
+    const text = json?.choices?.[0]?.message?.content?.trim()
+    return text || null
+  } catch (e) {
+    console.error('[deepseek] fetch error:', e.message)
     return null
   }
-  const json = await res.json()
-  const text = json?.choices?.[0]?.message?.content?.trim()
-  return text || null
 }
 
 module.exports = { generateNote }

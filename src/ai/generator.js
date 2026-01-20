@@ -61,4 +61,4 @@ async function runBatch(ids) {
   return updatedItems
 }
 
-module.exports = { run, runBatch }
+module.exports = { run, runBatch, generateNote }
