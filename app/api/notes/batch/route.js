@@ -1,5 +1,4 @@
-import prisma from '../../../../lib/prisma'
-import { generateNote } from '../../../../src/ai/generator'
+import { runBatch } from '../../../../src/ai/generator'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -11,36 +10,10 @@ export async function POST(request) {
       return Response.json({ items: [] })
     }
 
-    // 查库
-    const items = await prisma.news.findMany({
-      where: { id: { in: ids } }
-    })
+    // 直接调用封装好的 runBatch
+    const items = await runBatch(ids)
     
-    // 逐个生成 (并行)
-    const tasks = items.map(async (item) => {
-      // 简单判断是否已生成过，如果已生成，可以选择跳过或重新生成
-      // 这里假设前端调这个接口就是想重新生成
-      
-      const prompt = `
-【标题】${item.title}
-【摘要】${item.brief || ''}
-【内容】${(item.content || '').substring(0, 500)}
-
-请用一句话点评这条新闻对资本市场的影响（利好/利空/中性及原因）。
-`
-      const note = await generateNote(prompt)
-      
-      // 回写数据库
-      await prisma.news.update({
-        where: { id: item.id },
-        data: { ai_note: note }
-      })
-      
-      return { id: item.id, ai_note: note }
-    })
-
-    const results = await Promise.all(tasks)
-    return Response.json({ items: results })
+    return Response.json({ items })
   } catch (e) {
     console.error('Batch notes error:', e)
     return Response.json({ error: e.message }, { status: 500 })
