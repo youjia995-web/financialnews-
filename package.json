@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev -p 6081",
     "build": "next build",
-    "start": "npx prisma migrate deploy && next start -H 0.0.0.0",
+    "start": "npx prisma db push && next start -H 0.0.0.0",
     "fetcher": "node scripts/fetcher.js",
     "notes": "node scripts/run-notes.js"
   },
