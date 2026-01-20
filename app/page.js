@@ -21,7 +21,6 @@ export default async function HomePage() {
         </nav>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 12, alignItems: 'center' }}>
           <AutoRefresh />
-          <a href="/refresh" style={{ background: '#22d3ee', color: '#0f172a', padding: '6px 10px', borderRadius: 6 }}>刷新</a>
         </div>
       </header>
       <section style={{ maxWidth: 980, margin: '24px auto', padding: '0 16px' }}>
