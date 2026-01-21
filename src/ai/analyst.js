@@ -134,12 +134,27 @@ function calculateIndicators(data) {
     ma20: getVal(ma20, lastIdx, 19),
     ma60: getVal(ma60, lastIdx, 59),
     rsi: getVal(rsi, lastIdx, 14),
-    macd: getVal(macd, lastIdx, 25)?.MACD, // MACD needs 26+9-1 = 34? usually period is max(slow, fast+signal)
-    volatility: volatility[lastIdx - 1], // volatility array aligns with logReturns which is length-1
+    macd: getVal(macd, lastIdx, 25)?.MACD, 
+    volatility: volatility[lastIdx - 1],
     pct_chg: data[lastIdx].pct_chg
   }
 
-  return { latest, events: recentEvents }
+  // Extract full series for chart (last 120 points)
+  const chartData = []
+  const startIdx = Math.max(0, len - 120)
+  for (let i = startIdx; i < len; i++) {
+    chartData.push({
+      date: data[i].trade_date,
+      close: data[i].close,
+      vol: data[i].vol,
+      amount: data[i].amount,
+      ma5: getVal(ma5, i, 4),
+      ma20: getVal(ma20, i, 19),
+      ma60: getVal(ma60, i, 59)
+    })
+  }
+
+  return { latest, events: recentEvents, chartData }
 }
 
 /**
@@ -168,8 +183,16 @@ async function analyzeStock(code) {
   // 2. [数据引擎] 调用 Tushare API 获取实时历史数据 (150天)
   // 移除本地数据库查询
   let history = []
+  let stockName = tsCode // 默认用代码
   try {
-    history = await tushare.fetchHistory(tsCode, 150)
+    const [histData, basicData] = await Promise.all([
+      tushare.fetchHistory(tsCode, 150),
+      tushare.fetchStockBasic(tsCode)
+    ])
+    history = histData
+    if (basicData && basicData.name) {
+      stockName = basicData.name
+    }
   } catch (e) {
     console.error('Tushare fetch failed:', e)
   }
@@ -179,7 +202,7 @@ async function analyzeStock(code) {
      console.log('Tushare API returned empty, trying local DB fallback...')
      history = await prisma.stockDaily.findMany({
        where: { ts_code: tsCode },
-       orderBy: { trade_date: 'asc' },
+       orderBy: { trade_date: 'asc' }, // 本地数据库取出来是 ASC
        take: 150
      })
   }
@@ -187,6 +210,9 @@ async function analyzeStock(code) {
   if (history.length === 0) {
     throw new Error(`未找到股票 ${tsCode} 的历史数据 (Tushare & Local DB empty)`)
   }
+
+  // history 现在是 ASC 排序（旧->新）。latest 是数组最后一个元素。
+  console.log(`Analyzing ${tsCode} with ${history.length} records. Latest date: ${history[history.length-1].trade_date}`)
 
   // 使用 JS 计算指标
   let indicators
@@ -275,7 +301,21 @@ ${todayContext}
 `
 
   // 5. 调用 Qwen-Max
-  return await qwen.generate(prompt, { temperature: 0.4 })
+  const analysis = await qwen.generate(prompt, { temperature: 0.4 })
+
+  // 6. 返回结构化数据
+  return {
+    meta: {
+      code: tsCode,
+      name: stockName, 
+      price: latest.close,
+      change: latest.pct_chg,
+      date: latest.date
+    },
+    klineData: indicators.chartData,
+    indicators: latest,
+    analysis
+  }
 }
 
 /**

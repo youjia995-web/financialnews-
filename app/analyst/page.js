@@ -3,19 +3,33 @@
 import { useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import Link from 'next/link'
+import {
+  ComposedChart,
+  Line,
+  Area,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend
+} from 'recharts'
 
 export default function AnalystPage() {
   const [activeTab, setActiveTab] = useState('stock') // 'stock' | 'query'
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState('')
+  const [result, setResult] = useState(null) // 结构化数据
+  const [error, setError] = useState('')
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!input.trim()) return
 
     setLoading(true)
-    setResult('')
+    setResult(null)
+    setError('')
 
     try {
       const endpoint = activeTab === 'stock' ? '/api/analyst/stock' : '/api/analyst/query'
@@ -27,19 +41,21 @@ export default function AnalystPage() {
         body: JSON.stringify(body)
       })
 
+      const json = await res.json()
       if (res.ok) {
-        const json = await res.json()
         setResult(json.result)
       } else {
-        const json = await res.json()
-        setResult(`Error: ${json.error || '请求失败'}`)
+        setError(json.error || '请求失败')
       }
     } catch (e) {
-      setResult(`Error: ${e.message}`)
+      setError(e.message)
     } finally {
       setLoading(false)
     }
   }
+
+  // 格式化数字
+  const fmt = (n) => typeof n === 'number' ? n.toFixed(2) : '-'
 
   return (
     <div style={{ background: '#0f172a', minHeight: '100vh', color: '#e2e8f0', display: 'flex', flexDirection: 'column' }}>
@@ -51,11 +67,11 @@ export default function AnalystPage() {
         <Link href="/" style={{ color: '#94a3b8', textDecoration: 'none' }}>返回首页</Link>
       </header>
 
-      <main style={{ flex: 1, maxWidth: 800, width: '100%', margin: '0 auto', padding: 24 }}>
+      <main style={{ flex: 1, maxWidth: 1000, width: '100%', margin: '0 auto', padding: 24 }}>
         {/* Tabs */}
         <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
           <button
-            onClick={() => { setActiveTab('stock'); setInput(''); setResult('') }}
+            onClick={() => { setActiveTab('stock'); setInput(''); setResult(null); setError('') }}
             style={{
               flex: 1,
               padding: '12px',
@@ -71,7 +87,7 @@ export default function AnalystPage() {
             个股深度诊断
           </button>
           <button
-            onClick={() => { setActiveTab('query'); setInput(''); setResult('') }}
+            onClick={() => { setActiveTab('query'); setInput(''); setResult(null); setError('') }}
             style={{
               flex: 1,
               padding: '12px',
@@ -125,16 +141,124 @@ export default function AnalystPage() {
           </div>
         </form>
 
+        {error && (
+          <div style={{ padding: 16, background: '#450a0a', color: '#fca5a5', borderRadius: 8, marginBottom: 24 }}>
+            {error}
+          </div>
+        )}
+
         {/* Result Area */}
         {result && (
-          <div style={{ background: '#1e293b', padding: 32, borderRadius: 12, border: '1px solid #334155' }}>
-            <article className="prose prose-invert" style={{ maxWidth: 'none', lineHeight: 1.6 }}>
-              <ReactMarkdown>{result}</ReactMarkdown>
-            </article>
+          <div style={{ background: '#1e293b', borderRadius: 12, border: '1px solid #334155', overflow: 'hidden' }}>
+            
+            {/* 1. 股票基本信息 (仅个股模式) */}
+            {activeTab === 'stock' && result.meta && (
+              <div style={{ padding: '24px 32px', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <h2 style={{ fontSize: 24, fontWeight: 'bold', margin: 0, display: 'flex', alignItems: 'center', gap: 12 }}>
+                    {result.meta.code} {result.meta.name !== result.meta.code ? result.meta.name : ''}
+                    <span style={{ fontSize: 14, background: '#334155', padding: '2px 8px', borderRadius: 4, color: '#94a3b8' }}>{result.meta.date}</span>
+                  </h2>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: 32, fontWeight: 'bold', color: result.meta.change >= 0 ? '#f87171' : '#4ade80' }}>
+                    {result.meta.price}
+                  </div>
+                  <div style={{ fontSize: 16, color: result.meta.change >= 0 ? '#f87171' : '#4ade80' }}>
+                    {result.meta.change >= 0 ? '+' : ''}{result.meta.change}%
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 2. 走势图 (仅个股模式) */}
+            {activeTab === 'stock' && result.klineData && (
+              <div style={{ height: 400, padding: '24px 32px 0 0' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={result.klineData}>
+                    <defs>
+                      <linearGradient id="colorClose" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#8884d8" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#8884d8" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                    <XAxis 
+                      dataKey="date" 
+                      tick={{fill: '#94a3b8', fontSize: 12}} 
+                      tickFormatter={(v) => v.slice(4)} // 20240101 -> 0101
+                      stroke="#475569"
+                    />
+                    <YAxis 
+                      yAxisId="left"
+                      domain={['auto', 'auto']} 
+                      tick={{fill: '#94a3b8', fontSize: 12}} 
+                      stroke="#475569"
+                    />
+                    <YAxis 
+                      yAxisId="right"
+                      orientation="right"
+                      domain={['auto', 'auto']} 
+                      tick={{fill: '#94a3b8', fontSize: 12}} 
+                      stroke="#475569"
+                      hide={true} // 隐藏右轴刻度，避免视觉杂乱
+                    />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#e2e8f0' }}
+                      itemStyle={{ color: '#e2e8f0' }}
+                      formatter={(value, name) => [fmt(value), name === 'vol' ? '成交量(手)' : name === 'amount' ? '成交额(千元)' : name]}
+                      labelFormatter={(label) => `日期: ${label}`}
+                    />
+                    <Legend />
+                    <Area yAxisId="left" type="monotone" dataKey="close" stroke="#8884d8" fillOpacity={1} fill="url(#colorClose)" name="收盘价" />
+                    <Line yAxisId="left" type="monotone" dataKey="ma5" stroke="#22d3ee" dot={false} strokeWidth={2} name="MA5" />
+                    <Line yAxisId="left" type="monotone" dataKey="ma20" stroke="#fbbf24" dot={false} strokeWidth={2} name="MA20" />
+                    <Bar yAxisId="right" dataKey="vol" fill="#82ca9d" opacity={0.3} name="成交量" />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
+            {/* 3. 核心指标 (仅个股模式) */}
+            {activeTab === 'stock' && result.indicators && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, padding: '24px 32px', borderBottom: '1px solid #334155' }}>
+                <div style={{ background: '#0f172a', padding: 12, borderRadius: 8 }}>
+                  <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 4 }}>RSI (14)</div>
+                  <div style={{ fontSize: 18, fontWeight: 'bold' }}>{fmt(result.indicators.rsi)}</div>
+                </div>
+                <div style={{ background: '#0f172a', padding: 12, borderRadius: 8 }}>
+                  <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 4 }}>MACD</div>
+                  <div style={{ fontSize: 18, fontWeight: 'bold' }}>{fmt(result.indicators.macd)}</div>
+                </div>
+                <div style={{ background: '#0f172a', padding: 12, borderRadius: 8 }}>
+                  <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 4 }}>MA60</div>
+                  <div style={{ fontSize: 18, fontWeight: 'bold' }}>{fmt(result.indicators.ma60)}</div>
+                </div>
+                <div style={{ background: '#0f172a', padding: 12, borderRadius: 8 }}>
+                  <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 4 }}>历史波动率</div>
+                  <div style={{ fontSize: 18, fontWeight: 'bold' }}>
+                    {result.indicators.volatility ? fmt(result.indicators.volatility * 100) : '-'}%
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 4. AI 深度报告 */}
+            {result.analysis && (
+              <div style={{ padding: 32, borderTop: '1px solid #334155' }}>
+                <h3 style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 16, color: '#facc15' }}>AI 深度研报</h3>
+                <article className="prose prose-invert" style={{ maxWidth: 'none', lineHeight: 1.6 }}>
+                  <ReactMarkdown>
+                    {result.analysis}
+                  </ReactMarkdown>
+                </article>
+              </div>
+            )}
+
           </div>
         )}
         
-        {!result && !loading && (
+        {!result && !loading && !error && (
           <div style={{ textAlign: 'center', color: '#64748b', marginTop: 64 }}>
             <p>输入代码或问题，AI 将为您提供深度分析。</p>
           </div>

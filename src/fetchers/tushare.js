@@ -98,8 +98,16 @@ async function fetchHistory(symbol, days = 150) {
   const start = new Date()
   start.setDate(end.getDate() - days)
 
-  const endStr = end.toISOString().slice(0, 10).replace(/-/g, '')
-  const startStr = start.toISOString().slice(0, 10).replace(/-/g, '')
+  // 格式化日期 YYYYMMDD
+  const format = (d) => {
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${y}${m}${day}`
+  }
+
+  const endStr = format(end)
+  const startStr = format(start)
 
   console.log(`[tushare] fetching history for ${symbol} from ${startStr} to ${endStr}`)
 
@@ -135,8 +143,22 @@ async function fetchHistory(symbol, days = 150) {
     }
   })
 
-  // Tushare returns desc order (newest first), but we need asc (oldest first) for indicator calc
+  // Tushare returns desc order (newest first: 2024, 2023...)
+  // We need asc order (oldest first: 2023, 2024...) for indicator calculation
   return result.reverse()
 }
 
-module.exports = { runDaily, callTushare, fetchHistory }
+async function fetchStockBasic(symbol) {
+  const data = await callTushare('stock_basic', { ts_code: symbol })
+  if (!data || !data.items || data.items.length === 0) return null
+  
+  const { fields, items } = data
+  const item = items[0]
+  const result = {}
+  fields.forEach((key, idx) => {
+    result[key] = item[idx]
+  })
+  return result
+}
+
+module.exports = { runDaily, callTushare, fetchHistory, fetchStockBasic }
