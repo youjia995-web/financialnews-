@@ -23,13 +23,20 @@ export default function AnalystPage() {
   const [result, setResult] = useState(null) // 结构化数据
   const [error, setError] = useState('')
 
+  const [loadingStep, setLoadingStep] = useState(0) // 0: idle, 1: searching, 2: reading, 3: thinking
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!input.trim()) return
 
     setLoading(true)
+    setLoadingStep(1) // Start searching
     setResult(null)
     setError('')
+
+    // Simulate steps
+    const t1 = setTimeout(() => setLoadingStep(2), 2000)
+    const t2 = setTimeout(() => setLoadingStep(3), 5000)
 
     try {
       const endpoint = activeTab === 'stock' ? '/api/analyst/stock' : '/api/analyst/query'
@@ -41,7 +48,14 @@ export default function AnalystPage() {
         body: JSON.stringify(body)
       })
 
-      const json = await res.json()
+      let json
+      try {
+        const text = await res.text()
+        json = JSON.parse(text)
+      } catch (err) {
+        throw new Error(`服务器响应异常: ${res.status} ${res.statusText}`)
+      }
+
       if (res.ok) {
         setResult(json.result)
       } else {
@@ -50,7 +64,10 @@ export default function AnalystPage() {
     } catch (e) {
       setError(e.message)
     } finally {
+      clearTimeout(t1)
+      clearTimeout(t2)
       setLoading(false)
+      setLoadingStep(0)
     }
   }
 
@@ -148,9 +165,32 @@ export default function AnalystPage() {
         )}
 
         {/* Result Area */}
-        {result && (
+        {loading && (
+          <div style={{ background: '#1e293b', padding: 40, borderRadius: 12, border: '1px solid #334155', textAlign: 'center' }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }} className="animate-pulse">
+              {loadingStep === 1 ? '🔍' : loadingStep === 2 ? '📰' : '🧠'}
+            </div>
+            <div style={{ fontSize: 18, fontWeight: 'bold', color: '#e2e8f0', marginBottom: 8 }}>
+              {loadingStep === 1 ? '正在搜索全网信息...' : loadingStep === 2 ? '正在聚合市场快讯...' : 'AI 正在进行深度推理...'}
+            </div>
+            <div style={{ color: '#94a3b8', fontSize: 14 }}>
+              {loadingStep === 3 ? '耗时可能较长 (约30-60秒)，请耐心等待' : '正在获取最新数据'}
+            </div>
+          </div>
+        )}
+
+        {result && !loading && (
           <div style={{ background: '#1e293b', borderRadius: 12, border: '1px solid #334155', overflow: 'hidden' }}>
             
+            {/* 0. 智能问答结果 (Query 模式) */}
+            {activeTab === 'query' && typeof result === 'string' && (
+              <div style={{ padding: 32 }}>
+                <article className="prose prose-invert" style={{ maxWidth: 'none', lineHeight: 1.6 }}>
+                  <ReactMarkdown>{result}</ReactMarkdown>
+                </article>
+              </div>
+            )}
+
             {/* 1. 股票基本信息 (仅个股模式) */}
             {activeTab === 'stock' && result.meta && (
               <div style={{ padding: '24px 32px', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

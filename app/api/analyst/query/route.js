@@ -16,6 +16,12 @@ export async function POST(req) {
     }
 
     const result = await analyst.analyzeQuery(query)
+    
+    if (!result) {
+      console.error('Analyst returned empty result for query:', query)
+      return NextResponse.json({ error: 'AI 未返回任何内容，请重试' }, { status: 500 })
+    }
+
     return NextResponse.json({ result })
   } catch (e) {
     console.error(e)

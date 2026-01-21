@@ -322,24 +322,29 @@ ${todayContext}
  * 功能 2: 智能财经问答 (DeepSeek)
  */
 async function analyzeQuery(query) {
-  // 1. Tavily 搜索
-  const searchRes = await tavily.search(query)
-  const webContext = searchRes?.results?.map(r => `[${r.title}] ${r.content}`).join('\n') || ''
+  try {
+    console.log(`[Analyst] Processing query: ${query}`)
+    
+    // 1. Tavily 搜索
+    const searchRes = await tavily.search(query)
+    const webContext = searchRes?.results?.map(r => `[${r.title}] ${r.content}`).join('\n') || ''
+    console.log(`[Analyst] Tavily found ${searchRes?.results?.length || 0} results`)
 
-  // 2. 本地财经新闻聚合 (最近 24 小时, 取最新的 20 条)
-  const yesterday = BigInt(Date.now() - 24 * 60 * 60 * 1000)
-  const localNews = await prisma.news.findMany({
-    where: { published_at: { gte: yesterday } },
-    orderBy: { published_at: 'desc' },
-    take: 20,
-    select: { title: true, brief: true }
-  })
-  const localContext = localNews.map(n => `[快讯] ${n.title}: ${n.brief}`).join('\n')
+    // 2. 本地财经新闻聚合 (最近 24 小时, 取最新的 20 条)
+    const yesterday = BigInt(Date.now() - 24 * 60 * 60 * 1000)
+    const localNews = await prisma.news.findMany({
+      where: { published_at: { gte: yesterday } },
+      orderBy: { published_at: 'desc' },
+      take: 20,
+      select: { title: true, brief: true }
+    })
+    const localContext = localNews.map(n => `[快讯] ${n.title}: ${n.brief}`).join('\n')
+    console.log(`[Analyst] Local news found ${localNews.length} items`)
 
-  // 3. 构建 Prompt
-  const messages = [
-    { role: 'system', content: '你是一位博学的财经专家，擅长结合实时网络信息和市场快讯回答用户问题。回答要条理清晰，引用数据支持。' },
-    { role: 'user', content: `
+    // 3. 构建 Prompt
+    const messages = [
+      { role: 'system', content: '你是一位博学的财经专家，擅长结合实时网络信息和市场快讯回答用户问题。回答要条理清晰，引用数据支持。请在回答末尾添加“仅供参考，不构成投资建议”的免责声明。' },
+      { role: 'user', content: `
 请回答用户问题：${query}
 
 参考信息：
@@ -351,10 +356,18 @@ ${localContext}
 
 请综合以上信息给出深度回答：
 ` }
-  ]
+    ]
 
-  // 4. 调用 DeepSeek
-  return await deepseek.chat(messages, { temperature: 0.5, max_tokens: 2000 })
+    // 4. 调用 DeepSeek
+    console.log('[Analyst] Calling DeepSeek...')
+    const response = await deepseek.chat(messages, { temperature: 0.5, max_tokens: 2000 })
+    console.log('[Analyst] DeepSeek response received')
+    return response
+
+  } catch (e) {
+    console.error('[Analyst] analyzeQuery failed:', e)
+    throw new Error(`智能问答服务暂时繁忙: ${e.message}`)
+  }
 }
 
 module.exports = { analyzeStock, analyzeQuery }

@@ -21,14 +21,19 @@ async function chat(messages, options = {}) {
       body: JSON.stringify(body)
     })
     if (!res.ok) {
-      console.error('[deepseek] API error:', res.status, await res.text())
-      return null
+      const errorText = await res.text()
+      console.error('[deepseek] API error:', res.status, errorText)
+      throw new Error(`DeepSeek API Error: ${res.status} - ${errorText}`)
     }
     const json = await res.json()
-    return json?.choices?.[0]?.message?.content?.trim() || null
+    const content = json?.choices?.[0]?.message?.content?.trim()
+    if (!content) {
+      throw new Error('DeepSeek returned empty content')
+    }
+    return content
   } catch (e) {
     console.error('[deepseek] fetch error:', e.message)
-    return null
+    throw e // Re-throw to let caller handle it
   }
 }
 
