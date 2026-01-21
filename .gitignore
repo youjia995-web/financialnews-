@@ -37,3 +37,8 @@ next-env.d.ts
 data.loki
 
 /src/generated/prisma
+
+stocks.csv
+stocks.db
+stocks.db-shm
+stocks.db-wal

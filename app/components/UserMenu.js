@@ -9,6 +9,9 @@ export default function UserMenu() {
   if (session) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <Link href="/analyst" style={{ fontSize: 14, color: '#facc15', textDecoration: 'none', fontWeight: 'bold' }}>
+          AI分析官
+        </Link>
         {session.user.role === 'ADMIN' && (
           <Link href="/admin/users" style={{ fontSize: 14, color: '#f472b6', textDecoration: 'none' }}>
             管理后台

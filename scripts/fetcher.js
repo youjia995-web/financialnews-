@@ -5,6 +5,7 @@ const cls = require('../src/fetchers/cls')
 // const futu = require('../src/fetchers/futu')
 const eastmoney = require('../src/fetchers/eastmoney')
 const wallstreetcn = require('../src/fetchers/wallstreetcn')
+const tushare = require('../src/fetchers/tushare')
 const { run } = require('../src/ai/generator')
 
 async function refresh() {
@@ -39,4 +40,10 @@ if (process.argv.includes('--once')) {
   // 启动时立即执行一次
   refresh()
   cron.schedule('*/10 * * * *', refresh)
+  
+  // 每天 17:00 同步 Tushare 股票数据
+  console.log('[fetcher] start schedule 0 17 * * * for tushare')
+  cron.schedule('0 17 * * *', () => {
+    tushare.runDaily()
+  })
 }
