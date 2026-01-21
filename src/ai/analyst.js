@@ -2,37 +2,144 @@ const prisma = require('../../lib/prisma')
 const qwen = require('./qwen')
 const deepseek = require('./deepseek')
 const tavily = require('../tools/tavily')
-const { PythonShell } = require('python-shell')
-const path = require('path')
+const TI = require('technicalindicators')
+const tushare = require('../fetchers/tushare')
 
 // 格式化数字
-const fmt = (n) => typeof n === 'number' ? n.toFixed(2) : '-'
+const fmt = (n) => {
+  if (n === null || n === undefined) return '-'
+  if (typeof n === 'number') return n.toFixed(2)
+  return '-'
+}
 
 /**
- * 调用 Python 脚本计算指标
+ * 使用 JavaScript 计算技术指标 (technicalindicators)
  */
-function runPythonIndicators(data) {
-  return new Promise((resolve, reject) => {
-    const pyshell = new PythonShell(path.join(process.cwd(), 'py/indicators.py'), {
-      mode: 'text',
-      pythonOptions: ['-u']
-    })
+function calculateIndicators(data) {
+  // 提取序列
+  const closes = data.map(d => d.close)
+  const highs = data.map(d => d.high)
+  const lows = data.map(d => d.low)
+  const volumes = data.map(d => d.vol)
 
-    let output = ''
-    pyshell.stdout.on('data', (chunk) => {
-      output += chunk
-    })
+  // 1. Moving Averages
+  const ma5 = TI.SMA.calculate({ period: 5, values: closes })
+  const ma20 = TI.SMA.calculate({ period: 20, values: closes })
+  const ma60 = TI.SMA.calculate({ period: 60, values: closes })
 
-    pyshell.send(JSON.stringify(data))
-    pyshell.end((err, code, signal) => {
-      if (err) return reject(err)
-      try {
-        resolve(JSON.parse(output))
-      } catch (e) {
-        reject(new Error('Failed to parse Python output: ' + output))
+  // 2. MACD (12, 26, 9)
+  const macdInput = {
+    values: closes,
+    fastPeriod: 12,
+    slowPeriod: 26,
+    signalPeriod: 9,
+    SimpleMAOscillator: false,
+    SimpleMASignal: false
+  }
+  const macd = TI.MACD.calculate(macdInput)
+
+  // 3. RSI (14)
+  const rsi = TI.RSI.calculate({ period: 14, values: closes })
+
+  // 4. Bollinger Bands (20, 2)
+  const bb = TI.BollingerBands.calculate({ period: 20, stdDev: 2, values: closes })
+
+  // 5. ATR (14)
+  const atr = TI.ATR.calculate({ period: 14, high: highs, low: lows, close: closes })
+
+  // 6. Historical Volatility (20 days)
+  // Log returns
+  const logReturns = []
+  for (let i = 1; i < closes.length; i++) {
+    logReturns.push(Math.log(closes[i] / closes[i - 1]))
+  }
+  // Rolling std dev * sqrt(252)
+  const volatility = []
+  for (let i = 0; i < logReturns.length; i++) {
+    if (i < 19) {
+      volatility.push(null)
+      continue
+    }
+    const slice = logReturns.slice(i - 19, i + 1)
+    const mean = slice.reduce((a, b) => a + b, 0) / slice.length
+    const variance = slice.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / slice.length
+    const std = Math.sqrt(variance)
+    volatility.push(std * Math.sqrt(252))
+  }
+
+  // 7. Key Events Screening
+  const events = []
+  
+  // Calculate Vol MA5 for comparison
+  const volMa5 = TI.SMA.calculate({ period: 5, values: volumes })
+
+  // We need to align arrays. TI returns arrays shorter than input by (period-1).
+  // Let's iterate from the end backwards to find recent events.
+  // Using original data index.
+  
+  const len = data.length
+  // Helper to get indicator value by original index
+  const getVal = (arr, idx, offset) => {
+    const arrIdx = idx - offset
+    return (arrIdx >= 0 && arrIdx < arr.length) ? arr[arrIdx] : null
+  }
+
+  // Iterate last 30 days to find events
+  for (let i = len - 1; i >= Math.max(0, len - 30); i--) {
+    const row = data[i]
+    const prevRow = data[i-1]
+    
+    if (!row || !prevRow) continue
+
+    // Price Change > +/- 5%
+    // Note: pct_chg in DB might be null, calculate manually if needed
+    let pctChg = row.pct_chg
+    if (pctChg === null || pctChg === undefined) {
+      pctChg = ((row.close - prevRow.close) / prevRow.close) * 100
+    }
+
+    if (pctChg > 5) {
+      events.push({ date: row.trade_date, reason: '大涨', pct_chg: pctChg, close: row.close, rsi: getVal(rsi, i, 14) })
+    } else if (pctChg < -5) {
+      events.push({ date: row.trade_date, reason: '大跌', pct_chg: pctChg, close: row.close, rsi: getVal(rsi, i, 14) })
+    }
+
+    // Volume > 3 * MA5(Vol)
+    // Vol MA5 is shifted by 1 (avg of PREVIOUS 5 days usually, but here we compare to current moving avg or prev?)
+    // Let's use avg of [i-5...i-1]
+    let prev5VolAvg = 0
+    if (i >= 5) {
+      const slice = volumes.slice(i-5, i)
+      prev5VolAvg = slice.reduce((a,b)=>a+b,0) / 5
+    }
+    
+    if (prev5VolAvg > 0 && row.vol > 3 * prev5VolAvg) {
+      // Avoid duplicate date if already added
+      if (!events.find(e => e.date === row.trade_date)) {
+        events.push({ date: row.trade_date, reason: '巨量', pct_chg: pctChg, close: row.close, rsi: getVal(rsi, i, 14) })
       }
-    })
-  })
+    }
+  }
+
+  // Sort events by date asc, take last 10
+  events.sort((a,b) => a.date.localeCompare(b.date))
+  const recentEvents = events.slice(-10)
+
+  // Latest status
+  const lastIdx = len - 1
+  const latest = {
+    date: data[lastIdx].trade_date,
+    close: data[lastIdx].close,
+    ma5: getVal(ma5, lastIdx, 4),
+    ma20: getVal(ma20, lastIdx, 19),
+    ma60: getVal(ma60, lastIdx, 59),
+    rsi: getVal(rsi, lastIdx, 14),
+    macd: getVal(macd, lastIdx, 25)?.MACD, // MACD needs 26+9-1 = 34? usually period is max(slow, fast+signal)
+    volatility: volatility[lastIdx - 1], // volatility array aligns with logReturns which is length-1
+    pct_chg: data[lastIdx].pct_chg
+  }
+
+  return { latest, events: recentEvents }
 }
 
 /**
@@ -41,35 +148,54 @@ function runPythonIndicators(data) {
 async function analyzeStock(code) {
   // 1. 模糊匹配股票代码
   let tsCode = code
+  // 如果是纯数字，尝试去数据库查后缀，或者默认补齐（这里简单处理：如果是6位数字，优先查库，查不到则根据首位猜测）
+  // 但既然改为实时获取，最好用户能输入完整代码，或者我们在这里做智能补全
   if (/^\d{6}$/.test(code)) {
     const match = await prisma.stockDaily.findFirst({
       where: { ts_code: { startsWith: code } },
       select: { ts_code: true }
     })
-    if (match) tsCode = match.ts_code
+    if (match) {
+      tsCode = match.ts_code
+    } else {
+      // 简单规则：60/68 -> SH, 00/30 -> SZ, 8/4 -> BJ
+      if (code.startsWith('6')) tsCode = `${code}.SH`
+      else if (code.startsWith('0') || code.startsWith('3')) tsCode = `${code}.SZ`
+      else if (code.startsWith('8') || code.startsWith('4')) tsCode = `${code}.BJ`
+    }
   }
 
-  // 2. [数据引擎] 获取全量历史数据并计算特征
-  // 注意：为了性能，这里只取最近 1000 条（约4年），足够计算指标
-  const history = await prisma.stockDaily.findMany({
-    where: { ts_code: tsCode },
-    orderBy: { trade_date: 'asc' },
-    // take: 1000 // 如果需要更长周期可调整
-  })
+  // 2. [数据引擎] 调用 Tushare API 获取实时历史数据 (150天)
+  // 移除本地数据库查询
+  let history = []
+  try {
+    history = await tushare.fetchHistory(tsCode, 150)
+  } catch (e) {
+    console.error('Tushare fetch failed:', e)
+  }
+
+  // 如果 API 失败且本地有数据，尝试降级读取本地 (Optional)
+  if (history.length === 0) {
+     console.log('Tushare API returned empty, trying local DB fallback...')
+     history = await prisma.stockDaily.findMany({
+       where: { ts_code: tsCode },
+       orderBy: { trade_date: 'asc' },
+       take: 150
+     })
+  }
 
   if (history.length === 0) {
-    throw new Error(`未找到股票 ${tsCode} 的历史数据`)
+    throw new Error(`未找到股票 ${tsCode} 的历史数据 (Tushare & Local DB empty)`)
   }
 
-  // 调用 Python 计算指标和筛选关键日期
+  // 使用 JS 计算指标
   let indicators
   try {
-    indicators = await runPythonIndicators(history)
+    indicators = calculateIndicators(history)
   } catch (e) {
-    console.error('Python calculation failed:', e)
-    // Fallback: 如果 Python 失败，手动构建简单数据
+    console.error('Indicator calculation failed:', e)
     indicators = {
-      latest: { close: history[history.length-1].close },
+      latest: { close: history[history.length-1].close, date: history[history.length-1].trade_date },
       events: []
     }
   }
@@ -104,7 +230,9 @@ async function analyzeStock(code) {
 - **均线系统**: MA5=${fmt(latest.ma5)}, MA20=${fmt(latest.ma20)}, MA60=${fmt(latest.ma60)}
 - **情绪指标**: RSI(14)=${fmt(latest.rsi)} (超买>80, 超卖<20)
 - **趋势指标**: MACD=${fmt(latest.macd)}
-- **波动率**: 年化历史波动率=${fmt(latest.volatility * 100)}%
+- **波动率**: 年化历史波动率=${latest.volatility ? fmt(latest.volatility * 100) : '-'}%
+
+(注意：如果指标显示为 '-'，表示数据不足无法计算，请根据收盘价走势进行定性分析)
 
 ## 📰 第二部分：历史股性归因 (信息引擎)
 这是该股过去几次大涨/大跌/巨量日期的当时新闻背景，请分析其“股性”：

@@ -92,4 +92,51 @@ async function runDaily() {
   return count
 }
 
-module.exports = { runDaily, callTushare }
+async function fetchHistory(symbol, days = 150) {
+  // Calculate start/end date
+  const end = new Date()
+  const start = new Date()
+  start.setDate(end.getDate() - days)
+
+  const endStr = end.toISOString().slice(0, 10).replace(/-/g, '')
+  const startStr = start.toISOString().slice(0, 10).replace(/-/g, '')
+
+  console.log(`[tushare] fetching history for ${symbol} from ${startStr} to ${endStr}`)
+
+  const data = await callTushare('daily', { 
+    ts_code: symbol,
+    start_date: startStr,
+    end_date: endStr
+  })
+
+  if (!data || !data.items || data.items.length === 0) {
+    return []
+  }
+
+  // Convert to objects
+  const { fields, items } = data
+  const result = items.map(item => {
+    const row = {}
+    fields.forEach((key, idx) => {
+      row[key] = item[idx]
+    })
+    return {
+      ts_code: row.ts_code,
+      trade_date: row.trade_date,
+      open: row.open,
+      high: row.high,
+      low: row.low,
+      close: row.close,
+      pre_close: row.pre_close,
+      change: row.change,
+      pct_chg: row.pct_chg,
+      vol: row.vol,
+      amount: row.amount
+    }
+  })
+
+  // Tushare returns desc order (newest first), but we need asc (oldest first) for indicator calc
+  return result.reverse()
+}
+
+module.exports = { runDaily, callTushare, fetchHistory }

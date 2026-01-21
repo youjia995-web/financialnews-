@@ -1,6 +1,6 @@
 import AutoRefresh from './components/AutoRefresh'
 import NewsListClient from './components/NewsListClient'
-import IntelligencePanel from './components/IntelligencePanel'
+import AIEntries from './components/AIEntries'
 import UserMenu from './components/UserMenu'
 import prisma from '../lib/prisma'
 
@@ -27,7 +27,7 @@ export default async function HomePage() {
         </div>
       </header>
       <section style={{ maxWidth: 980, margin: '24px auto', padding: '0 16px' }}>
-        <IntelligencePanel />
+        <AIEntries />
         <NewsListClient initialItems={items} />
       </section>
     </main>
