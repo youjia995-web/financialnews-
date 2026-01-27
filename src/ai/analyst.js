@@ -184,6 +184,8 @@ async function analyzeStock(code) {
   // 移除本地数据库查询
   let history = []
   let stockName = tsCode // 默认用代码
+  let apiError = null
+
   try {
     const [histData, basicData] = await Promise.all([
       tushare.fetchHistory(tsCode, 150),
@@ -195,6 +197,7 @@ async function analyzeStock(code) {
     }
   } catch (e) {
     console.error('Tushare fetch failed:', e)
+    apiError = e.message
   }
 
   // 如果 API 失败且本地有数据，尝试降级读取本地 (Optional)
@@ -205,10 +208,31 @@ async function analyzeStock(code) {
        orderBy: { trade_date: 'asc' }, // 本地数据库取出来是 ASC
        take: 150
      })
+
+     // 检查本地数据时效性
+     if (history.length > 0) {
+        const lastDate = history[history.length - 1].trade_date
+        // YYYYMMDD -> Date
+        const y = parseInt(lastDate.slice(0, 4))
+        const m = parseInt(lastDate.slice(4, 6)) - 1
+        const d = parseInt(lastDate.slice(6, 8))
+        const lastDateObj = new Date(y, m, d)
+        
+        const now = new Date()
+        const diffTime = Math.abs(now - lastDateObj)
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+        
+        console.log(`Local data last date: ${lastDate}, diff days: ${diffDays}`)
+
+        // 如果数据超过 15 天未更新，视为失效
+        if (diffDays > 15) {
+           throw new Error(`无法获取最新行情: 外部接口异常 (${apiError || 'No Data'}), 且本地数据已严重过时 (${lastDate})。请联系管理员检查 Tushare Token。`)
+        }
+     }
   }
 
   if (history.length === 0) {
-    throw new Error(`未找到股票 ${tsCode} 的历史数据 (Tushare & Local DB empty)`)
+    throw new Error(`未找到股票 ${tsCode} 的历史数据 (Tushare Error: ${apiError || 'Empty Result'})`)
   }
 
   // history 现在是 ASC 排序（旧->新）。latest 是数组最后一个元素。

@@ -28,7 +28,7 @@ async function callTushare(apiName, params) {
     return json.data
   } catch (e) {
     console.error('[tushare] request failed:', e.message)
-    return null
+    throw e // Re-throw error
   }
 }
 
