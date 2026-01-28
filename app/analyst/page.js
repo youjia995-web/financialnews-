@@ -252,7 +252,9 @@ export default function AnalystPage() {
                     <Legend />
                     <Area yAxisId="left" type="monotone" dataKey="close" stroke="#8884d8" fillOpacity={1} fill="url(#colorClose)" name="收盘价" />
                     <Line yAxisId="left" type="monotone" dataKey="ma5" stroke="#22d3ee" dot={false} strokeWidth={2} name="MA5" />
+                    <Line yAxisId="left" type="monotone" dataKey="ma10" stroke="#a78bfa" dot={false} strokeWidth={2} name="MA10" />
                     <Line yAxisId="left" type="monotone" dataKey="ma20" stroke="#fbbf24" dot={false} strokeWidth={2} name="MA20" />
+                    <Line yAxisId="left" type="monotone" dataKey="ma60" stroke="#f472b6" dot={false} strokeWidth={2} name="MA60" />
                     <Bar yAxisId="right" dataKey="vol" fill="#82ca9d" opacity={0.3} name="成交量" />
                   </ComposedChart>
                 </ResponsiveContainer>
@@ -261,23 +263,35 @@ export default function AnalystPage() {
 
             {/* 3. 核心指标 (仅个股模式) */}
             {activeTab === 'stock' && result.indicators && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, padding: '24px 32px', borderBottom: '1px solid #334155' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, padding: '24px 32px', borderBottom: '1px solid #334155' }}>
                 <div style={{ background: '#0f172a', padding: 12, borderRadius: 8 }}>
                   <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 4 }}>RSI (14)</div>
-                  <div style={{ fontSize: 18, fontWeight: 'bold' }}>{fmt(result.indicators.rsi)}</div>
+                  <div style={{ fontSize: 18, fontWeight: 'bold', color: result.indicators.rsi > 80 ? '#f87171' : result.indicators.rsi < 20 ? '#4ade80' : 'white' }}>
+                    {fmt(result.indicators.rsi)}
+                  </div>
                 </div>
                 <div style={{ background: '#0f172a', padding: 12, borderRadius: 8 }}>
-                  <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 4 }}>MACD</div>
-                  <div style={{ fontSize: 18, fontWeight: 'bold' }}>{fmt(result.indicators.macd)}</div>
-                </div>
-                <div style={{ background: '#0f172a', padding: 12, borderRadius: 8 }}>
-                  <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 4 }}>MA60</div>
-                  <div style={{ fontSize: 18, fontWeight: 'bold' }}>{fmt(result.indicators.ma60)}</div>
-                </div>
-                <div style={{ background: '#0f172a', padding: 12, borderRadius: 8 }}>
-                  <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 4 }}>历史波动率</div>
+                  <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 4 }}>KDJ (9,3,3)</div>
                   <div style={{ fontSize: 18, fontWeight: 'bold' }}>
-                    {result.indicators.volatility ? fmt(result.indicators.volatility * 100) : '-'}%
+                    <span style={{color: '#facc15'}}>K:{fmt(result.indicators.kdjK)}</span> <span style={{color: '#c084fc'}}>D:{fmt(result.indicators.kdjD)}</span>
+                  </div>
+                </div>
+                <div style={{ background: '#0f172a', padding: 12, borderRadius: 8 }}>
+                  <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 4 }}>ATR 止损位</div>
+                  <div style={{ fontSize: 18, fontWeight: 'bold', color: '#f472b6' }}>
+                    {fmt(result.indicators.signals?.stopLoss)}
+                  </div>
+                </div>
+                <div style={{ background: '#0f172a', padding: 12, borderRadius: 8 }}>
+                  <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 4 }}>VWAP (均价)</div>
+                  <div style={{ fontSize: 18, fontWeight: 'bold', color: '#22d3ee' }}>
+                     {fmt(result.indicators.signals?.vwap)}
+                  </div>
+                </div>
+                <div style={{ background: '#0f172a', padding: 12, borderRadius: 8 }}>
+                  <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 4 }}>综合评级</div>
+                  <div style={{ fontSize: 18, fontWeight: 'bold', color: '#fbbf24' }}>
+                    {result.indicators.signals?.decision || '-'}
                   </div>
                 </div>
               </div>

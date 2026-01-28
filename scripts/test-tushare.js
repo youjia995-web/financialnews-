@@ -4,7 +4,7 @@ const dotenv = require('dotenv')
 dotenv.config()
 
 async function runTest() {
-  const symbol = '002465.SZ'
+  const symbol = '000657.SZ'
   console.log(`Fetching history for ${symbol}...`)
   
   try {
