@@ -26,6 +26,12 @@ yarn-error.log*
 .env*.local
 .env
 
+# database files
+*.db
+*.db-shm
+*.db-wal
+prisma/dev.db
+
 # vercel
 .vercel
 
@@ -42,3 +48,9 @@ stocks.csv
 stocks.db
 stocks.db-shm
 stocks.db-wal
+
+# debug files
+debug-*.js
+
+# temp images
+微信图片_*.jpg

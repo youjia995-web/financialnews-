@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { run as runNotes } from '../../../src/ai/generator'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST() {
   try {
     const count = await runNotes(10)

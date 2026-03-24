@@ -4,10 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 6081",
-    "build": "next build",
-    "start": "npx prisma db push && next start -H 0.0.0.0",
+    "build": "prisma generate && next build",
+    "start": "next start",
+    "postinstall": "prisma generate",
     "fetcher": "node scripts/fetcher.js",
-    "notes": "node scripts/run-notes.js"
+    "notes": "node scripts/run-notes.js",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate deploy",
+    "db:seed": "node scripts/set-admin.js admin admin"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

@@ -3,6 +3,9 @@ import { getServerSession } from "next-auth/next"
 import { authOptions } from "../../auth/[...nextauth]/route"
 import analyst from "../../../../src/ai/analyst"
 
+export const dynamic = 'force-dynamic'
+export const maxDuration = 300
+
 export async function POST(req) {
   const session = await getServerSession(authOptions)
   if (!session) {

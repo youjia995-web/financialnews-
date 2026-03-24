@@ -17,6 +17,7 @@ export async function middleware(req) {
   // 这里我们保护首页 '/' 和其他页面，除了 api/auth, login, _next, public files
   if (!token) {
     if (pathname.startsWith('/api/auth') || 
+        pathname.startsWith('/api/analyst/stock') || 
         pathname.startsWith('/_next') || 
         pathname.includes('.')) {
       return NextResponse.next()

@@ -327,17 +327,24 @@ async function analyzeStock(code) {
   // 如果是纯数字，尝试去数据库查后缀，或者默认补齐（这里简单处理：如果是6位数字，优先查库，查不到则根据首位猜测）
   // 但既然改为实时获取，最好用户能输入完整代码，或者我们在这里做智能补全
   if (/^\d{6}$/.test(code)) {
-    const match = await prisma.stockDaily.findFirst({
-      where: { ts_code: { startsWith: code } },
-      select: { ts_code: true }
-    })
-    if (match) {
-      tsCode = match.ts_code
-    } else {
-      // 简单规则：60/68 -> SH, 00/30 -> SZ, 8/4 -> BJ
-      if (code.startsWith('6')) tsCode = `${code}.SH`
-      else if (code.startsWith('0') || code.startsWith('3')) tsCode = `${code}.SZ`
-      else if (code.startsWith('8') || code.startsWith('4')) tsCode = `${code}.BJ`
+    try {
+        const match = await prisma.stockDaily.findFirst({
+        where: { ts_code: { startsWith: code } },
+        select: { ts_code: true }
+        })
+        if (match) {
+        tsCode = match.ts_code
+        } else {
+        // 简单规则：60/68 -> SH, 00/30 -> SZ, 8/4 -> BJ
+        if (code.startsWith('6')) tsCode = `${code}.SH`
+        else if (code.startsWith('0') || code.startsWith('3')) tsCode = `${code}.SZ`
+        else if (code.startsWith('8') || code.startsWith('4')) tsCode = `${code}.BJ`
+        }
+    } catch (e) {
+        // DB error, fallback to simple rule
+        if (code.startsWith('6')) tsCode = `${code}.SH`
+        else if (code.startsWith('0') || code.startsWith('3')) tsCode = `${code}.SZ`
+        else if (code.startsWith('8') || code.startsWith('4')) tsCode = `${code}.BJ`
     }
   }
 
@@ -364,11 +371,16 @@ async function analyzeStock(code) {
   // 如果 API 失败且本地有数据，尝试降级读取本地 (Optional)
   if (history.length === 0) {
      console.log('Tushare API returned empty, trying local DB fallback...')
-     history = await prisma.stockDaily.findMany({
-       where: { ts_code: tsCode },
-       orderBy: { trade_date: 'asc' }, // 本地数据库取出来是 ASC
-       take: 150
-     })
+     try {
+        history = await prisma.stockDaily.findMany({
+        where: { ts_code: tsCode },
+        orderBy: { trade_date: 'asc' }, // 本地数据库取出来是 ASC
+        take: 150
+        })
+     } catch (e) {
+        console.log('Local DB access failed:', e.message)
+        history = []
+     }
 
      // 检查本地数据时效性
      if (history.length > 0) {

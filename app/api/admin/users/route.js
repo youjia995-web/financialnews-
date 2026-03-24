@@ -4,6 +4,8 @@ import { getServerSession } from "next-auth/next"
 import { authOptions } from "../../auth/[...nextauth]/route"
 import bcrypt from "bcryptjs"
 
+export const dynamic = 'force-dynamic'
+
 // 辅助函数：检查管理员权限
 async function checkAdmin() {
   const session = await getServerSession(authOptions)

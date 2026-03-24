@@ -5,6 +5,8 @@ import eastmoney from '../../../src/fetchers/eastmoney'
 import wallstreetcn from '../../../src/fetchers/wallstreetcn'
 import { run as runNotes } from '../../../src/ai/generator'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST() {
   let count = 0
   let noted = 0

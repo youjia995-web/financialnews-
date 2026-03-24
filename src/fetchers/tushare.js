@@ -21,19 +21,26 @@ async function callTushare(apiName, params) {
   const url = API_URL
 
   try {
+    console.log(`[tushare] fetch ${url}...`)
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     })
     
+    if (!res.ok) {
+        const text = await res.text()
+        throw new Error(`HTTP Error ${res.status}: ${text}`)
+    }
+
     const json = await res.json()
     if (json.code !== 0) {
       throw new Error(`Tushare API error: ${json.msg}`)
     }
     return json.data
   } catch (e) {
-    console.error('[tushare] request failed:', e.message)
+    console.error('[tushare] request failed:', e)
+    if (e.cause) console.error('[tushare] error cause:', e.cause)
     throw e // Re-throw error
   }
 }
