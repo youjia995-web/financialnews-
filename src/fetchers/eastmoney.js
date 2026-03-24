@@ -19,8 +19,7 @@ async function fetchList() {
     brief: x.summary || '',
     content: x.summary || '',
     url: `https://kuaixun.eastmoney.com/news/${x.code}.html`,
-    // 东方财富返回的是北京时间，需要转换为 UTC 时间戳
-    published_at: x.showTime ? (new Date(x.showTime).getTime() - 8 * 60 * 60 * 1000) : Date.now(),
+    published_at: x.showTime ? new Date(x.showTime).getTime() : Date.now(),
     raw: JSON.stringify(x)
   }))
 }
