@@ -39,22 +39,37 @@ export default function AutoRefresh({ intervalMs = 600000 }) { // 默认 10 分�
       setIsRefreshing(true)
       console.log('Auto refreshing data...')
       
-      // 设置 15秒 超时，避免请求挂死
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 15000)
       
-      await fetch('/api/refresh', { 
-        method: 'POST',
-        signal: controller.signal
-      }).catch(e => console.warn('Refresh request failed or timeout:', e))
+      let shouldReload = true
+      try {
+        const response = await fetch('/api/refresh', { 
+          method: 'POST',
+          signal: controller.signal
+        })
+        if (response.ok) {
+          console.log('Refresh successful')
+        }
+      } catch (fetchError) {
+        shouldReload = false
+        if (fetchError.name === 'AbortError') {
+          console.log('Refresh request aborted')
+        } else {
+          console.warn('Refresh request failed:', fetchError.message)
+        }
+      }
       
       clearTimeout(timeoutId)
+      
+      if (shouldReload) {
+        console.log('Reloading page...')
+        window.location.reload()
+      }
     } catch (e) {
       console.error('Auto refresh error:', e)
     } finally {
-      // 无论成功失败，都刷新页面以获取最新数据（如果有的话）并重置状态
-      console.log('Reloading page...')
-      window.location.reload()
+      setIsRefreshing(false)
     }
   }
 

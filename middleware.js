@@ -14,10 +14,12 @@ export async function middleware(req) {
   }
 
   // 2. 如果未登录，且不是 API 或静态资源，重定向到登录页
-  // 这里我们保护首页 '/' 和其他页面，除了 api/auth, login, _next, public files
+  // 这里我们保护首页 '/' 和其他页面，除了 api/auth, login, _next, public files, mobile
   if (!token) {
     if (pathname.startsWith('/api/auth') || 
-        pathname.startsWith('/api/analyst/stock') || 
+        pathname.startsWith('/api/analyst/stock') ||
+        pathname.startsWith('/api/news') ||
+        pathname.startsWith('/mobile') ||
         pathname.startsWith('/_next') || 
         pathname.includes('.')) {
       return NextResponse.next()
