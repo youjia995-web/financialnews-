@@ -1,6 +1,6 @@
 const prisma = require('../../lib/prisma')
 
-const API_URL = process.env.TUSHARE_API_URL || 'http://tushare.nlink.vip'
+const API_URL = process.env.TUSHARE_API_URL || 'http://api.tushare.pro'
 
 async function callTushare(apiName, params) {
   const token = process.env.TUSHARE_TOKEN
