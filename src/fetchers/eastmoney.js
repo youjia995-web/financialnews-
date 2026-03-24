@@ -19,7 +19,7 @@ async function fetchList() {
     brief: x.summary || '',
     content: x.summary || '',
     url: `https://kuaixun.eastmoney.com/news/${x.code}.html`,
-    published_at: x.showTime ? new Date(x.showTime).getTime() : Date.now(),
+    published_at: x.showTime ? new Date(x.showTime + '+08:00').getTime() : Date.now(),
     raw: JSON.stringify(x)
   }))
 }
@@ -35,7 +35,7 @@ async function saveItems(items) {
       brief: it.brief,
       content: it.content,
       url: it.url,
-      published_at: BigInt(it.published_at),
+      published_at: it.published_at,
       ai_note: '',
       sentiment_score: senti.score,
       created_at: BigInt(Date.now())
