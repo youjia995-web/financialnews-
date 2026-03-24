@@ -7,6 +7,7 @@ export default function MobileNewsPage() {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [expandedId, setExpandedId] = useState(null)
 
   useEffect(() => {
     fetchNews()
@@ -32,10 +33,13 @@ export default function MobileNewsPage() {
     fetchNews()
   }
 
+  const toggleExpand = (id) => {
+    setExpandedId(expandedId === id ? null : id)
+  }
+
   const getSourceColor = (source) => {
     const colors = {
       'eastmoney': '#ea580c',
-      'futu': '#f59e0b',
       'wallstreetcn': '#8b5cf6',
       'cls': '#3b82f6'
     }
@@ -45,7 +49,6 @@ export default function MobileNewsPage() {
   const getSourceName = (source) => {
     const names = {
       'eastmoney': '东财',
-      'futu': '富途',
       'wallstreetcn': '华尔街',
       'cls': '财联社'
     }
@@ -53,7 +56,7 @@ export default function MobileNewsPage() {
   }
 
   const formatTime = (timestamp) => {
-    const date = new Date(timestamp)
+    const date = new Date(Number(timestamp))
     const now = new Date()
     const diff = now - date
     const minutes = Math.floor(diff / 60000)
@@ -164,18 +167,36 @@ export default function MobileNewsPage() {
               </h3>
               
               {item.brief && (
-                <p style={{ 
-                  fontSize: 14, 
-                  color: '#94a3b8', 
-                  lineHeight: 1.6,
-                  marginBottom: 10,
-                  display: '-webkit-box',
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: 'vertical',
-                  overflow: 'hidden'
-                }}>
-                  {item.brief}
-                </p>
+                <div style={{ marginBottom: 10 }}>
+                  <p style={{ 
+                    fontSize: 14, 
+                    color: '#94a3b8', 
+                    lineHeight: 1.6,
+                    margin: 0,
+                    display: expandedId === item.id ? 'block' : '-webkit-box',
+                    WebkitLineClamp: expandedId === item.id ? 'unset' : 3,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden'
+                  }}>
+                    {item.brief}
+                  </p>
+                  {item.brief.length > 60 && (
+                    <button
+                      onClick={() => toggleExpand(item.id)}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#22d3ee',
+                        fontSize: 13,
+                        padding: '4px 0',
+                        marginTop: 4,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {expandedId === item.id ? '收起 ↑' : '展开更多 ↓'}
+                    </button>
+                  )}
+                </div>
               )}
 
               {item.ai_note && (
