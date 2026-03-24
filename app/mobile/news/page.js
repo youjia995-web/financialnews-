@@ -56,15 +56,23 @@ export default function MobileNewsPage() {
   }
 
   const formatTime = (timestamp) => {
-    const date = new Date(Number(timestamp))
+    // 处理 BigInt 类型的时间戳
+    const ts = typeof timestamp === 'bigint' ? Number(timestamp) : Number(timestamp)
+    const date = new Date(ts)
     const now = new Date()
     const diff = now - date
     const minutes = Math.floor(diff / 60000)
     const hours = Math.floor(diff / 3600000)
     
+    // 处理未来时间（可能是时区或数据问题）
+    if (diff < 0) {
+      return '刚刚'
+    }
+    
+    if (minutes < 1) return '刚刚'
     if (minutes < 60) return `${minutes}分钟前`
     if (hours < 24) return `${hours}小时前`
-    return date.toLocaleDateString()
+    return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
   }
 
   return (
