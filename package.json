@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 6081",
-    "build": "prisma generate --schema=prisma/schema.postgres.prisma && prisma db push --schema=prisma/schema.postgres.prisma && next build",
+    "build": ""build": "prisma generate --schema=prisma/schema.postgres.prisma && prisma db push --schema=prisma/schema.postgres.prisma && npm run db:seed && next build",
     "start": "next start",
     "postinstall": "prisma generate --schema=prisma/schema.postgres.prisma",
     "fetcher": "node scripts/fetcher.js",
