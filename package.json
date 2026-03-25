@@ -4,17 +4,15 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 6081",
-    "build":"prisma generate --schema=prisma/schema.postgres.prisma && prisma db push --schema=prisma/schema.postgres.prisma && npm run db:seed && next build",
+    "build": "prisma generate && prisma db push && npm run db:seed && next build",
     "start": "next start",
-    "postinstall": "prisma generate --schema=prisma/schema.postgres.prisma",
+    "postinstall": "prisma generate",
     "fetcher": "node scripts/fetcher.js",
     "notes": "node scripts/run-notes.js",
-    "db:push": "prisma db push --schema=prisma/schema.sqlite.prisma",
-    "db:push:prod": "prisma db push --schema=prisma/schema.postgres.prisma",
+    "db:push": "prisma db push",
     "db:migrate": "prisma migrate deploy",
     "db:seed": "node scripts/set-admin.js admin admin",
-    "db:generate": "prisma generate --schema=prisma/schema.sqlite.prisma",
-    "db:generate:prod": "prisma generate --schema=prisma/schema.postgres.prisma"
+    "db:generate": "prisma generate"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
