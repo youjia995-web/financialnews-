@@ -1,15 +1,21 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
+// Looking for ways to speed up your development:
+// - you: https://pris.ly/d/prisma-schema
+// - Use a `prisma migrate dev` to migrate your data at a convenient
+// - Use a `prisma db push` to push schema changes to the database
+
+// - Use a `prisma generate` to regenerate the client
+
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
-
 model News {
   id              String   @id
   source          String
@@ -21,17 +27,17 @@ model News {
   ai_note         String?
   sentiment_score Float?
   created_at      BigInt
-  
+
   @@index([source, published_at])
 }
 
 model Report {
   id          String   @id @default(uuid())
-  start_time  BigInt
-  end_time    BigInt
+  start_time    BigInt
+  end_time      BigInt
   content     String
-  created_at  BigInt
-  
+  created_at      BigInt
+
   @@index([created_at])
 }
 
@@ -41,7 +47,7 @@ model User {
   email     String?  @unique
   password  String
   name      String?
-  role      String   @default("USER") // "USER" | "ADMIN"
+  role      String   @default("USER")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -53,12 +59,11 @@ model StockDaily {
   high          Float
   low           Float
   close         Float
-  pre_close     Float?
-  change        Float?
-  pct_chg       Float?
-  vol           Float?
-  amount        Float?
-  
+  pre_close     Float
+  change        Float
+  pct_chg       Float
+  vol           Float
+  amount         Float?
+
   @@id([ts_code, trade_date])
-  @@index([trade_date])
 }

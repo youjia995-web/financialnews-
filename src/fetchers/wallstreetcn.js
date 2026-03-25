@@ -58,10 +58,10 @@ async function saveItems(items) {
       brief: it.brief,
       content: it.content,
       url: it.url,
-      published_at: BigInt(it.published_at),
+      published_at: it.published_at,
       ai_note: '',
       sentiment_score: senti.score,
-      created_at: BigInt(Date.now())
+      created_at: Date.now()
     }
     try {
       await prisma.news.upsert({

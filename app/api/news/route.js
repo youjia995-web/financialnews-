@@ -12,8 +12,8 @@ export async function GET(request) {
   // 构建查询条件
   if (start || end) {
     where.published_at = {}
-    if (start) where.published_at.gte = BigInt(start)
-    if (end) where.published_at.lte = BigInt(end)
+    if (start) where.published_at.gte = Number(start)
+    if (end) where.published_at.lte = Number(end)
   }
 
   // 排序并限制数量
