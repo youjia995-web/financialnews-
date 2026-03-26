@@ -6,10 +6,14 @@ export async function GET(request) {
   const { searchParams } = new URL(request.url)
   const start = searchParams.get('start')
   const end = searchParams.get('end')
+  const source = searchParams.get('source')
 
   const where = {}
   
-  // 构建查询条件
+  if (source) {
+    where.source = source
+  }
+  
   if (start || end) {
     where.published_at = {}
     if (start) where.published_at.gte = Number(start)

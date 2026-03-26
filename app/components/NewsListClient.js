@@ -7,11 +7,20 @@ export default function NewsListClient({ initialItems }) {
   const [selectedIds, setSelectedIds] = useState(new Set())
   const [generating, setGenerating] = useState(false)
   
-  // 筛选状态
-  const [dateRangeType, setDateRangeType] = useState('all') // all, today, yesterday, last7, last30, custom
+  const [activeSource, setActiveSource] = useState(null)
+  
+  const [dateRangeType, setDateRangeType] = useState('all')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [loading, setLoading] = useState(false)
+
+  
+  const sources = [
+    { key: null, label: '全部', color: '#64748b' },
+    { key: 'cls', label: '财联社', color: '#3b82f6' },
+    { key: 'wallstreetcn', label: '华尔街见闻', color: '#8b5cf6' },
+    { key: 'eastmoney', label: '东财', color: '#ea580c' }
+  ]
 
   const handleRangeChange = (e) => {
     const type = e.target.value
@@ -52,19 +61,14 @@ export default function NewsListClient({ initialItems }) {
     setDateRangeType('custom')
   }
 
-  const toggleSelect = (id) => {
-    const next = new Set(selectedIds)
-    if (next.has(id)) next.delete(id)
-    else next.add(id)
-    setSelectedIds(next)
-  }
-
-  const handleSearch = async () => {
+  const handleSourceChange = async (source) => {
+    setActiveSource(source)
     setLoading(true)
     try {
       const params = new URLSearchParams()
+      if (source) params.append('source', source)
       if (startDate) params.append('start', new Date(startDate).getTime())
-      if (endDate) params.append('end', new Date(endDate).getTime()) // datetime-local 精确到分，直接使用时间戳即可，无需+86400000
+      if (endDate) params.append('end', new Date(endDate).getTime())
       
       const res = await fetch(`/api/news?${params.toString()}`)
       if (res.ok) {
@@ -79,8 +83,37 @@ export default function NewsListClient({ initialItems }) {
     }
   }
 
+  const handleSearch = async () => {
+    setLoading(true)
+    try {
+      const params = new URLSearchParams()
+      if (activeSource) params.append('source', activeSource)
+      if (startDate) params.append('start', new Date(startDate).getTime())
+      if (endDate) params.append('end', new Date(endDate).getTime())
+      
+      const res = await fetch(`/api/news?${params.toString()}`)
+      if (res.ok) {
+        const json = await res.json()
+        setItems(json.items)
+      }
+    } catch (e) {
+      console.error('Search failed:', e)
+      alert('查询失败')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const toggleSelect = (id) => {
+    const next = new Set(selectedIds)
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
+    setSelectedIds(next)
+  }
+
   const handleExport = () => {
     const params = new URLSearchParams()
+    if (activeSource) params.append('source', activeSource)
     if (startDate) params.append('start', new Date(startDate).getTime())
     if (endDate) params.append('end', new Date(endDate).getTime())
     window.location.href = `/api/export?${params.toString()}`
@@ -98,16 +131,13 @@ export default function NewsListClient({ initialItems }) {
       })
       if (res.ok) {
         const json = await res.json()
-        console.log('Generated notes:', json)
-        // 更新本地状态显示新评注
         setItems(prev => prev.map(it => {
           const update = json.items.find(u => u.id === it.id)
           return update ? { ...it, ai_note: update.ai_note } : it
         }))
-        setSelectedIds(new Set()) // 清空选择
+        setSelectedIds(new Set())
       } else {
         const errText = await res.text()
-        console.error('Batch API error:', errText)
         alert('生成失败: ' + res.status)
       }
     } catch (e) {
@@ -120,13 +150,33 @@ export default function NewsListClient({ initialItems }) {
 
   return (
     <>
-      {/* 筛选工具栏 */}
       <div style={{ 
         background: '#1e293b', padding: '12px 16px', borderRadius: 8, marginBottom: 16,
         display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ color: '#94a3b8', fontSize: 14 }}>时间范围:</span>
+          <span style={{ color: '#94a3b8', fontSize: 14 }}>来源:</span>
+          <div style={{ display: 'flex', gap: 4 }}>
+            {sources.map(s => (
+              <button
+                key={s.key}
+                onClick={() => handleSourceChange(s.key)}
+                style={{
+                  background: activeSource === s.key ? s.color : '#0f172a',
+                  border: activeSource === s.key ? `1px solid ${s.color}` : '1px solid #334155',
+                  color: activeSource === s.key ? 'white' : '#e2e8f0',
+                  padding: '6px 12px', borderRadius: 6, cursor: 'pointer',
+                  fontWeight: activeSource === s.key ? 600 : 400
+                }}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ color: '#94a3b8', fontSize: 14 }}>时间:</span>
           <select 
             value={dateRangeType} 
             onChange={handleRangeChange}
@@ -192,7 +242,6 @@ export default function NewsListClient({ initialItems }) {
         </div>
       </div>
 
-      {/* 悬浮操作栏 */}
       {selectedIds.size > 0 && (
         <div style={{
           position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
@@ -243,10 +292,10 @@ export default function NewsListClient({ initialItems }) {
               <div style={{ color: '#475569' }}>
                 <span style={{ 
                   marginRight: 8, padding: '2px 6px', borderRadius: 4, fontSize: 12,
-                  background: it.source === 'eastmoney' ? '#ea580c' : (it.source === 'futu' ? '#f59e0b' : (it.source === 'wallstreetcn' ? '#8b5cf6' : '#3b82f6')),
+                  background: it.source === 'eastmoney' ? '#ea580c' : (it.source === 'wallstreetcn' ? '#8b5cf6' : '#3b82f6'),
                   color: 'white'
                 }}>
-                  {it.source === 'eastmoney' ? '东财' : (it.source === 'futu' ? '富途' : (it.source === 'wallstreetcn' ? '华尔街见闻' : '财联社'))}
+                  {it.source === 'eastmoney' ? '东财' : (it.source === 'wallstreetcn' ? '华尔街见闻' : '财联社')}
                 </span>
                 {new Date(it.published_at).toLocaleString()}
               </div>
@@ -257,7 +306,7 @@ export default function NewsListClient({ initialItems }) {
             <h3 style={{ margin: '10px 0 6px', fontSize: 18 }}>{it.title}</h3>
             <Text item={it} />
             <div style={{ marginTop: 8, borderTop: '1px dashed #e2e8f0', paddingTop: 8 }}>
-              <div style={{ color: '#64748b', marginBottom: 6 }}>AI 评注：{it.ai_note || '待生成'}</div>
+              <div style={{ color: '#64748b', marginBottom: 6 }}>AI 评注: {it.ai_note || '待生成'}</div>
               <div style={{ display: 'flex', gap: 10 }}>
                 <a href={it.url} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ background: '#0ea5e9', color: 'white', padding: '6px 10px', borderRadius: 6 }}>查看原文</a>
                 <button onClick={e => e.stopPropagation()} style={{ background: '#e2e8f0', color: '#0f172a', padding: '6px 10px', borderRadius: 6 }}>标记已读</button>

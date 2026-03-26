@@ -17,9 +17,10 @@ export default async function HomePage() {
           <span style={{ color: '#22d3ee' }}>News</span>.AI
         </div>
         <nav style={{ display: 'flex', gap: 8 }}>
-          <span style={{ background: '#1e293b', padding: '6px 10px', borderRadius: 6 }}>全部</span>
-          <span style={{ background: '#1e293b', padding: '6px 10px', borderRadius: 6 }}>利好</span>
-          <span style={{ background: '#1e293b', padding: '6px 10px', borderRadius: 6 }}>利空</span>
+          <span style={{ background: '#1e293b', padding: '6px 10px', borderRadius: 6, cursor: 'pointer' }}>全部</span>
+          <span style={{ background: '#1e293b', padding: '6px 10px', borderRadius: 6, cursor: 'pointer' }}>财联社</span>
+          <span style={{ background: '#1e293b', padding: '6px 10px', borderRadius: 6, cursor: 'pointer' }}>华尔街见闻</span>
+          <span style={{ background: '#1e293b', padding: '6px 10px', borderRadius: 6, cursor: 'pointer' }}>东财</span>
         </nav>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 12, alignItems: 'center' }}>
           <AutoRefresh />
@@ -56,5 +57,3 @@ async function fetchNews() {
     return []
   }
 }
-
-
