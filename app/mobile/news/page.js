@@ -28,9 +28,18 @@ export default function MobileNewsPage() {
     }
   }
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     setRefreshing(true)
-    fetchNews()
+    try {
+      const res = await fetch('/api/refresh', { method: 'POST' })
+      if (res.ok) {
+        await fetchNews()
+      }
+    } catch (e) {
+      console.error('Refresh error:', e)
+    } finally {
+      setRefreshing(false)
+    }
   }
 
   const toggleExpand = (id) => {
